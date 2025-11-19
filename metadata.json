@@ -1,0 +1,5 @@
+{
+  "name": "ToyForge - 3D Vinyl Character Creator",
+  "description": "Generate stylized 3D vinyl toy figures with customizable attributes using Google Imagen.",
+  "requestFramePermissions": []
+}
