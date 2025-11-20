@@ -122,22 +122,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10">
         <h2 className="text-base font-bold text-slate-800">Configurator</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onChange(DEFAULT_CONFIG)}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
-            title="Reset Default"
-          >
-            <RotateCcw size={16} />
-          </button>
-          <button
-            onClick={onRandomize}
-            className="p-2 text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors"
-            title="Randomize All"
-          >
-            <Shuffle size={16} />
-          </button>
-        </div>
+        {/* The buttons previously here are moved to the bottom action bar */}
       </div>
 
       {/* Scrollable Content */}
@@ -210,7 +195,41 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Generate Action Bar */}
-      <div className="p-4 border-t border-slate-100 bg-white">
+      <div className="p-4 border-t border-slate-100 bg-white space-y-3">
+        {/* Transparent Background Toggle */}
+        <label className="flex items-center justify-between cursor-pointer group p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+          <div className="flex-1">
+            <div className="font-semibold text-slate-800 text-sm">Transparent Background</div>
+            <div className="text-xs text-slate-500 mt-0.5">Remove background (costs more)</div>
+          </div>
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={config.transparent !== false}
+              onChange={(e) => onChange({ ...config, transparent: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+          </div>
+        </label>
+
+        {/* Cache Toggle */}
+        <label className="flex items-center justify-between cursor-pointer group p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+          <div className="flex-1">
+            <div className="font-semibold text-slate-800 text-sm">Use Cache</div>
+            <div className="text-xs text-slate-500 mt-0.5">Faster if config exists</div>
+          </div>
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={config.cache === true}
+              onChange={(e) => onChange({ ...config, cache: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+          </div>
+        </label>
+
         <button
           onClick={onGenerate}
           disabled={isGenerating}

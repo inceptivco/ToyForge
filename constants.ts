@@ -66,13 +66,13 @@ export const HAIR_STYLES: AssetOption[] = [
   { id: 'buns', label: 'Space Buns', promptValue: 'two cute space buns on top of head', gender: 'female' },
   { id: 'long', label: 'Long Wavy', promptValue: 'long flowing wavy hair', gender: 'female' },
   { id: 'pixie', label: 'Pixie', promptValue: 'a short pixie cut', gender: 'female' },
-  
+
   // Male specific
   { id: 'undercut', label: 'Undercut', promptValue: 'a trendy undercut fade', gender: 'male' },
   { id: 'quiff', label: 'Quiff', promptValue: 'a voluminous quiff hairstyle', gender: 'male' },
   { id: 'sidepart', label: 'Side Part', promptValue: 'a neat side part hairstyle', gender: 'male' },
   { id: 'buzz', label: 'Buzz Cut', promptValue: 'a short buzz cut', gender: 'male' },
-  
+
   // Unisex
   { id: 'messy', label: 'Messy', promptValue: 'messy short textured hair' },
   { id: 'afro', label: 'Afro', promptValue: 'a round puffy afro' },
@@ -85,12 +85,12 @@ export const CLOTHING_ITEMS: AssetOption[] = [
   { id: 'hoodie', label: 'Hoodie', promptValue: 'a cozy hoodie' },
   { id: 'sweater', label: 'Sweater', promptValue: 'a chunky knit sweater' },
   { id: 'jacket', label: 'Bomber', promptValue: 'a bomber jacket' },
-  
+
   // Female specific
   { id: 'tank', label: 'Tank Top', promptValue: 'a tank top', gender: 'female' },
   { id: 'dress', label: 'Sundress', promptValue: 'a simple sundress', gender: 'female' },
   { id: 'blouse', label: 'Blouse', promptValue: 'a cute blouse', gender: 'female' },
-  
+
   // Male specific
   { id: 'polo', label: 'Polo', promptValue: 'a collared polo shirt', gender: 'male' },
   { id: 'buttonup', label: 'Button Up', promptValue: 'a buttoned dress shirt', gender: 'male' },
@@ -115,4 +115,6 @@ export const DEFAULT_CONFIG: CharacterConfig = {
   clothingColorId: 'pink',
   accessoryId: 'none',
   eyeColorId: 'dark',
+  transparent: true,
+  cache: false,
 };

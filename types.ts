@@ -10,6 +10,8 @@ export interface CharacterConfig {
   clothingColorId: string;
   accessoryId: string;
   eyeColorId: string;
+  transparent?: boolean; // Whether to remove background (default: true)
+  cache?: boolean; // Whether to use cached results (default: false)
 }
 
 export interface AssetOption {

@@ -152,7 +152,9 @@ Deno.serve(async (req: Request) => {
     const config = await req.json();
     const {
       gender, skinToneId, hairStyleId, hairColorId,
-      clothingId, clothingColorId, accessoryId, eyeColorId
+      clothingId, clothingColorId, accessoryId, eyeColorId,
+      transparent = true, // Default to transparent background
+      cache = false // Default to no cache
     } = config;
 
     // 2. Authenticate User
@@ -162,37 +164,52 @@ Deno.serve(async (req: Request) => {
 
     if (apiKeyHeader) {
       // Validate API Key
-      // For MVP, we assume raw key is stored or we hash it. 
-      // In migration we said 'key_hash'. Let's assume client sends raw key and we hash it to compare.
-      // But for simplicity in this step, let's assume we can look it up.
-      // Actually, let's stick to the plan: User Session is primary for now.
-      // If we implement API keys later, we add logic here.
-      // For now, let's throw if no Auth.
-    }
+      // Format: sk_toyforge_[hex]
+      // We need to hash it to compare with DB
+      const encoder = new TextEncoder();
+      const data = encoder.encode(apiKeyHeader);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const keyHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    if (authHeader) {
+      const { data: keyRecord, error: keyError } = await supabase
+        .from('api_keys')
+        .select('user_id, id')
+        .eq('key_hash', keyHash)
+        .single();
+
+      if (keyRecord) {
+        userId = keyRecord.user_id;
+        // Update last_used_at (fire and forget)
+        supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyRecord.id).then();
+      } else {
+        return new Response(JSON.stringify({ error: "Invalid API Key" }), { status: 401, headers: corsHeaders });
+      }
+    } else if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (user) userId = user.id;
     }
 
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Unauthorized. Please provide a valid Bearer token or x-api-key." }), { status: 401, headers: corsHeaders });
     }
 
-    // 3. Check Cache
-    const configHash = await hashConfig(config);
-    const { data: cachedGen } = await supabase
-      .from('generations')
-      .select('image_url')
-      .eq('config_hash', configHash)
-      .single();
+    // 3. Check Cache (only if cache parameter is true)
+    if (cache) {
+      const configHash = await hashConfig(config);
+      const { data: cachedGen } = await supabase
+        .from('generations')
+        .select('image_url')
+        .eq('config_hash', configHash)
+        .single();
 
-    if (cachedGen) {
-      console.log("Cache Hit!");
-      return new Response(JSON.stringify({ image: cachedGen.image_url, cached: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (cachedGen) {
+        console.log("Cache Hit!");
+        return new Response(JSON.stringify({ image: cachedGen.image_url, cached: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // 4. Deduct Credits
@@ -259,110 +276,118 @@ Deno.serve(async (req: Request) => {
         .upload(originalFileName, originalImageBuffer, { contentType: 'image/png' });
 
       // --- Figma-Style Background Removal (Green Screen) ---
-      console.log("Generating Green Screen Mask (Gemini 2.5)...");
-
       let finalImageBase64 = rawBase64;
       let isTransparent = false;
 
-      try {
-        // 1. Generate "Green Screen" version
-        const maskResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              { inlineData: { mimeType: 'image/png', data: rawBase64 } },
-              { text: "Replace the white background with a solid bright green background (hex #00FF00). Keep the character EXACTLY the same. Do not change the character's pose, lighting, or details. High contrast." }
-            ]
-          },
-          config: { responseModalities: [Modality.IMAGE] }
-        });
+      // Only perform background removal if transparent parameter is true
+      if (transparent) {
+        console.log("Generating Green Screen Mask (Gemini 2.5)...");
+        try {
+          // 1. Generate "Green Screen" version
+          const maskResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+              parts: [
+                { inlineData: { mimeType: 'image/png', data: rawBase64 } },
+                { text: "Replace the white background with a solid bright green background (hex #00FF00). Keep the character EXACTLY the same. Do not change the character's pose, lighting, or details. High contrast." }
+              ]
+            },
+            config: { responseModalities: [Modality.IMAGE] }
+          });
 
-        const maskPart = maskResponse.candidates?.[0]?.content?.parts?.[0];
+          const maskPart = maskResponse.candidates?.[0]?.content?.parts?.[0];
 
-        if (maskPart?.inlineData?.data) {
-          console.log("Green screen generation successful. Extracting mask...");
+          if (maskPart?.inlineData?.data) {
+            console.log("Green screen generation successful. Extracting mask...");
 
-          const { PNG } = await import("npm:pngjs@^7.0.0");
+            const { PNG } = await import("npm:pngjs@^7.0.0");
 
-          const rawBuffer = Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0));
-          const maskBuffer = Uint8Array.from(atob(maskPart.inlineData.data), c => c.charCodeAt(0));
+            const rawBuffer = Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0));
+            const maskBuffer = Uint8Array.from(atob(maskPart.inlineData.data), c => c.charCodeAt(0));
 
-          const rawPng = PNG.sync.read(Buffer.from(rawBuffer));
-          const maskPng = PNG.sync.read(Buffer.from(maskBuffer));
+            const rawPng = PNG.sync.read(Buffer.from(rawBuffer));
+            const maskPng = PNG.sync.read(Buffer.from(maskBuffer));
 
-          const width = rawPng.width;
-          const height = rawPng.height;
+            const width = rawPng.width;
+            const height = rawPng.height;
 
-          // Resize check
-          if (maskPng.width !== width || maskPng.height !== height) {
-            console.warn("Mask dimensions mismatch. Skipping background removal.");
-            throw new Error("Dimension mismatch");
-          }
+            // Resize check
+            if (maskPng.width !== width || maskPng.height !== height) {
+              console.warn("Mask dimensions mismatch. Skipping background removal.");
+              throw new Error("Dimension mismatch");
+            }
 
-          let greenPixelCount = 0;
+            let greenPixelCount = 0;
 
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const idx = (width * y + x) * 4;
+            for (let y = 0; y < height; y++) {
+              for (let x = 0; x < width; x++) {
+                const idx = (width * y + x) * 4;
 
-              // Check Mask Pixel (Green Screen)
-              const mr = maskPng.data[idx];
-              const mg = maskPng.data[idx + 1];
-              const mb = maskPng.data[idx + 2];
+                // Check Mask Pixel (Green Screen)
+                const mr = maskPng.data[idx];
+                const mg = maskPng.data[idx + 1];
+                const mb = maskPng.data[idx + 2];
 
-              // Robust Green Keyer: Green must be significantly dominant
-              // G > R + threshold AND G > B + threshold
-              const dominance = 40;
-              const isGreen = (mg > mr + dominance) && (mg > mb + dominance);
+                // Robust Green Keyer: Green must be significantly dominant
+                // G > R + threshold AND G > B + threshold
+                const dominance = 40;
+                const isGreen = (mg > mr + dominance) && (mg > mb + dominance);
 
-              if (isGreen) {
-                rawPng.data[idx + 3] = 0; // Transparent
-                greenPixelCount++;
-              } else {
-                rawPng.data[idx + 3] = 255; // Opaque
+                if (isGreen) {
+                  rawPng.data[idx + 3] = 0; // Transparent
+                  greenPixelCount++;
+                } else {
+                  rawPng.data[idx + 3] = 255; // Opaque
+                }
               }
             }
-          }
 
-          if (greenPixelCount > 0) {
-            const finalBuffer = PNG.sync.write(rawPng);
-            finalImageBase64 = finalBuffer.toString('base64');
-            isTransparent = true;
-            console.log(`Mask applied. ${greenPixelCount} pixels removed.`);
+            if (greenPixelCount > 0) {
+              const finalBuffer = PNG.sync.write(rawPng);
+              finalImageBase64 = finalBuffer.toString('base64');
+              isTransparent = true;
+              console.log(`Mask applied. ${greenPixelCount} pixels removed.`);
+            } else {
+              console.warn("No green pixels found in mask. Background removal failed.");
+            }
+
           } else {
-            console.warn("No green pixels found in mask. Background removal failed.");
+            console.warn("Failed to generate green screen mask. Using original.");
           }
 
-        } else {
-          console.warn("Failed to generate green screen mask. Using original.");
+        } catch (err) {
+          console.error("Background removal failed:", err);
+          finalImageBase64 = rawBase64;
         }
-
-      } catch (maskError) {
-        console.error("Background removal failed:", maskError);
-        // Fallback to original (white BG)
+      } else {
+        console.log("Skipping background removal (transparent=false)");
+        finalImageBase64 = rawBase64;
       }
 
-      // 7. Upload Final Image to Storage
+      // 7. Save Final Image
       const finalImageBuffer = Uint8Array.from(atob(finalImageBase64), c => c.charCodeAt(0));
-
-      const { error: uploadError } = await supabase.storage
+      await supabase.storage
         .from('generations')
         .upload(finalFileName, finalImageBuffer, { contentType: 'image/png' });
 
-      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage
+        .from('generations')
+        .getPublicUrl(finalFileName);
 
-      const { data: { publicUrl } } = supabase.storage.from('generations').getPublicUrl(finalFileName);
+      const imageUrl = publicUrlData.publicUrl;
 
-      // 8. Save to DB (Cache)
+      // 8. Store in Database with config hash
+      const configHash = await hashConfig(config);
       await supabase.from('generations').insert({
         user_id: userId,
         config_hash: configHash,
-        image_url: publicUrl,
+        image_url: imageUrl,
+        config: config,
         prompt_used: subjectPrompt,
         cost_in_credits: COST_PER_GENERATION
       });
 
-      return new Response(JSON.stringify({ image: publicUrl, cached: false, transparent: isTransparent }), {
+      return new Response(JSON.stringify({ image: imageUrl, cached: false, transparent: isTransparent }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
 
