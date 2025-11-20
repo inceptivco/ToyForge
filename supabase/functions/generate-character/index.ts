@@ -1,16 +1,23 @@
 
 import { GoogleGenAI, Modality } from "npm:@google/genai@^1.30.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
 
-// Fix: Declare Deno global to resolve "Cannot find name 'Deno'" TypeScript error
+import { Buffer } from "node:buffer";
+
+// Fix: Declare Deno global
 declare const Deno: any;
+// Polyfill Buffer for pngjs
+globalThis.Buffer = Buffer;
 
-// CORS Headers for browser access
+// CORS Headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// --- Constants & Asset Registries (Ported from Client) ---
+// --- Constants ---
+const COST_PER_GENERATION = 1;
 
 const STYLE_PROMPT = `
 Render a high-end collectible vinyl toy figure. Direct front view. Facing the camera straight on. Symmetrical upper body portrait.
@@ -100,129 +107,288 @@ const PROMPT_MAPS: any = {
   }
 };
 
+// --- Helper Functions ---
+
+async function hashConfig(config: any): Promise<string> {
+  // Sort keys to ensure deterministic hash
+  const sortedConfig = Object.keys(config).sort().reduce((obj: any, key) => {
+    obj[key] = config[key];
+    return obj;
+  }, {});
+  const str = JSON.stringify(sortedConfig);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// --- Main Handler ---
+
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { 
-      gender, 
-      skinToneId, 
-      hairStyleId, 
-      hairColorId, 
-      clothingId, 
-      clothingColorId, 
-      accessoryId, 
-      eyeColorId 
-    } = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
-    // Validate API Key
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error("Missing GEMINI_API_KEY environment variable");
+    if (!supabaseUrl || !supabaseServiceKey || !geminiApiKey) {
+      const missing = [];
+      if (!supabaseUrl) missing.push('SUPABASE_URL');
+      if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+      if (!geminiApiKey) missing.push('GEMINI_API_KEY');
+
+      console.error("Missing environment variables:", missing.join(', '));
+      throw new Error(`Missing environment variables: ${missing.join(', ')}`);
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-    // --- Step 1: Construct Prompt ---
-    
-    const skinPrompt = PROMPT_MAPS.SKIN_TONES[skinToneId] || PROMPT_MAPS.SKIN_TONES['medium'];
-    const eyePrompt = PROMPT_MAPS.EYE_COLORS[eyeColorId] || 'dark';
-    const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[hairStyleId] || PROMPT_MAPS.HAIR_STYLES['messy'];
-    const hairColorPrompt = PROMPT_MAPS.HAIR_COLORS[hairColorId] || 'brown';
-    const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[clothingColorId] || 'white';
-    const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[clothingId] || 't-shirt';
-    const accessoryPrompt = PROMPT_MAPS.ACCESSORIES[accessoryId] || '';
-    
-    const expressionPrompt = Math.random() > 0.5 ? 'a happy smiling expression' : 'a confident smirk';
+    // 1. Parse Request
+    const config = await req.json();
+    const {
+      gender, skinToneId, hairStyleId, hairColorId,
+      clothingId, clothingColorId, accessoryId, eyeColorId
+    } = config;
 
-    const subjectPrompt = `
-      A cute 3D vinyl toy character.
-      View: Direct front view. Facing camera.
-      Gender: ${gender || 'female'}.
-      Skin: ${skinPrompt}.
-      Eyes: Large circular ${eyePrompt} eyes.
-      Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
-      Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
-      Expression: ${expressionPrompt}.
-      ${accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : ''}
-    `;
+    // 2. Authenticate User
+    let userId: string | null = null;
+    const authHeader = req.headers.get('Authorization');
+    const apiKeyHeader = req.headers.get('x-api-key');
 
-    const fullPrompt = `${STYLE_PROMPT} ${subjectPrompt}`;
-
-    // --- Step 2: Generate Base Image (Imagen 3) ---
-
-    console.log("Generating base image...");
-    const imageResponse = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: fullPrompt,
-      config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/png',
-        aspectRatio: '1:1',
-      },
-    });
-
-    if (!imageResponse.generatedImages?.[0]?.image?.imageBytes) {
-      throw new Error("Failed to generate base image");
+    if (apiKeyHeader) {
+      // Validate API Key
+      // For MVP, we assume raw key is stored or we hash it. 
+      // In migration we said 'key_hash'. Let's assume client sends raw key and we hash it to compare.
+      // But for simplicity in this step, let's assume we can look it up.
+      // Actually, let's stick to the plan: User Session is primary for now.
+      // If we implement API keys later, we add logic here.
+      // For now, let's throw if no Auth.
     }
 
-    const rawBase64 = imageResponse.generatedImages[0].image.imageBytes;
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (user) userId = user.id;
+    }
 
-    // --- Step 3: Remove Background (Gemini 2.5 Flash) ---
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
 
-    console.log("Removing background...");
-    const cleanupResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/png',
-              data: rawBase64
-            }
+    // 3. Check Cache
+    const configHash = await hashConfig(config);
+    const { data: cachedGen } = await supabase
+      .from('generations')
+      .select('image_url')
+      .eq('config_hash', configHash)
+      .single();
+
+    if (cachedGen) {
+      console.log("Cache Hit!");
+      return new Response(JSON.stringify({ image: cachedGen.image_url, cached: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 4. Deduct Credits
+    // We use the RPC function we created
+    const { data: success, error: creditError } = await supabase
+      .rpc('deduct_credits', {
+        p_user_id: userId,
+        p_amount: COST_PER_GENERATION,
+        p_ref_id: 'pending_gen_' + Date.now()
+      });
+
+    if (creditError || !success) {
+      return new Response(JSON.stringify({ error: "Insufficient Credits" }), { status: 402, headers: corsHeaders });
+    }
+
+    // 5. Generate Image
+    try {
+      // Construct Prompt
+      const skinPrompt = PROMPT_MAPS.SKIN_TONES[skinToneId] || PROMPT_MAPS.SKIN_TONES['medium'];
+      const eyePrompt = PROMPT_MAPS.EYE_COLORS[eyeColorId] || 'dark';
+      const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[hairStyleId] || PROMPT_MAPS.HAIR_STYLES['messy'];
+      const hairColorPrompt = PROMPT_MAPS.HAIR_COLORS[hairColorId] || 'brown';
+      const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[clothingColorId] || 'white';
+      const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[clothingId] || 't-shirt';
+      const accessoryPrompt = PROMPT_MAPS.ACCESSORIES[accessoryId] || '';
+      const expressionPrompt = Math.random() > 0.5 ? 'a happy smiling expression' : 'a confident smirk';
+
+      // Explicit negative prompt for accessories if none
+      const negativePrompt = accessoryId === 'none' ? 'No glasses. No sunglasses. No hats. No accessories.' : '';
+
+      const subjectPrompt = `
+        A cute 3D vinyl toy character.
+        View: Direct front view. Facing camera.
+        Gender: ${gender || 'female'}.
+        Skin: ${skinPrompt}.
+        Eyes: Large circular ${eyePrompt} eyes.
+        Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
+        Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
+        Expression: ${expressionPrompt}.
+        ${accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : negativePrompt}
+      `;
+      const fullPrompt = `${STYLE_PROMPT} ${subjectPrompt}`;
+
+      // AI Generation (Imagen 3)
+      console.log("Generating base image...");
+      const imageResponse = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: fullPrompt,
+        config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '1:1' },
+      });
+
+      if (!imageResponse.generatedImages?.[0]?.image?.imageBytes) throw new Error("Failed to generate base image");
+      const rawBase64 = imageResponse.generatedImages[0].image.imageBytes;
+
+      // 6. Upload Original to Storage (Backup)
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const originalFileName = `${userId}/${timestamp}_${randomId}_original.png`;
+      const finalFileName = `${userId}/${timestamp}_${randomId}.png`;
+
+      const originalImageBuffer = Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0));
+      await supabase.storage
+        .from('generations')
+        .upload(originalFileName, originalImageBuffer, { contentType: 'image/png' });
+
+      // --- Figma-Style Background Removal (Green Screen) ---
+      console.log("Generating Green Screen Mask (Gemini 2.5)...");
+
+      let finalImageBase64 = rawBase64;
+      let isTransparent = false;
+
+      try {
+        // 1. Generate "Green Screen" version
+        const maskResponse = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              { inlineData: { mimeType: 'image/png', data: rawBase64 } },
+              { text: "Replace the white background with a solid bright green background (hex #00FF00). Keep the character EXACTLY the same. Do not change the character's pose, lighting, or details. High contrast." }
+            ]
           },
-          {
-            text: "Precisely segment the vinyl toy character from the white background. Return ONLY the character on a transparent alpha layer. Ensure no white background remains between arms or hair strands. Do not crop."
+          config: { responseModalities: [Modality.IMAGE] }
+        });
+
+        const maskPart = maskResponse.candidates?.[0]?.content?.parts?.[0];
+
+        if (maskPart?.inlineData?.data) {
+          console.log("Green screen generation successful. Extracting mask...");
+
+          const { PNG } = await import("npm:pngjs@^7.0.0");
+
+          const rawBuffer = Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0));
+          const maskBuffer = Uint8Array.from(atob(maskPart.inlineData.data), c => c.charCodeAt(0));
+
+          const rawPng = PNG.sync.read(Buffer.from(rawBuffer));
+          const maskPng = PNG.sync.read(Buffer.from(maskBuffer));
+
+          const width = rawPng.width;
+          const height = rawPng.height;
+
+          // Resize check
+          if (maskPng.width !== width || maskPng.height !== height) {
+            console.warn("Mask dimensions mismatch. Skipping background removal.");
+            throw new Error("Dimension mismatch");
           }
-        ]
-      },
-      config: {
-        responseModalities: [Modality.IMAGE],
-      }
-    });
 
-    let finalImageBase64 = rawBase64;
-    const processedPart = cleanupResponse.candidates?.[0]?.content?.parts?.[0];
-    
-    if (processedPart && processedPart.inlineData && processedPart.inlineData.data) {
-      finalImageBase64 = processedPart.inlineData.data;
-    } else {
-      console.warn("Background removal failed, returning raw image");
+          let greenPixelCount = 0;
+
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (width * y + x) * 4;
+
+              // Check Mask Pixel (Green Screen)
+              const mr = maskPng.data[idx];
+              const mg = maskPng.data[idx + 1];
+              const mb = maskPng.data[idx + 2];
+
+              // Robust Green Keyer: Green must be significantly dominant
+              // G > R + threshold AND G > B + threshold
+              const dominance = 40;
+              const isGreen = (mg > mr + dominance) && (mg > mb + dominance);
+
+              if (isGreen) {
+                rawPng.data[idx + 3] = 0; // Transparent
+                greenPixelCount++;
+              } else {
+                rawPng.data[idx + 3] = 255; // Opaque
+              }
+            }
+          }
+
+          if (greenPixelCount > 0) {
+            const finalBuffer = PNG.sync.write(rawPng);
+            finalImageBase64 = finalBuffer.toString('base64');
+            isTransparent = true;
+            console.log(`Mask applied. ${greenPixelCount} pixels removed.`);
+          } else {
+            console.warn("No green pixels found in mask. Background removal failed.");
+          }
+
+        } else {
+          console.warn("Failed to generate green screen mask. Using original.");
+        }
+
+      } catch (maskError) {
+        console.error("Background removal failed:", maskError);
+        // Fallback to original (white BG)
+      }
+
+      // 7. Upload Final Image to Storage
+      const finalImageBuffer = Uint8Array.from(atob(finalImageBase64), c => c.charCodeAt(0));
+
+      const { error: uploadError } = await supabase.storage
+        .from('generations')
+        .upload(finalFileName, finalImageBuffer, { contentType: 'image/png' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('generations').getPublicUrl(finalFileName);
+
+      // 8. Save to DB (Cache)
+      await supabase.from('generations').insert({
+        user_id: userId,
+        config_hash: configHash,
+        image_url: publicUrl,
+        prompt_used: subjectPrompt,
+        cost_in_credits: COST_PER_GENERATION
+      });
+
+      return new Response(JSON.stringify({ image: publicUrl, cached: false, transparent: isTransparent }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+
+    } catch (genError: any) {
+      // Refund Credits on Failure
+      console.error("Generation Failed, Refunding:", genError);
+      await supabase.rpc('deduct_credits', {
+        p_user_id: userId,
+        p_amount: -COST_PER_GENERATION, // Negative amount adds credits
+        p_ref_id: 'refund_' + Date.now()
+      });
+
+      // Handle Specific Google AI Errors
+      if (genError.message?.includes('billed users') || genError.status === 400) {
+        return new Response(JSON.stringify({
+          error: "System Error: The AI provider requires a billed account. Please contact the developer."
+        }), { status: 424, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      throw genError;
     }
-
-    // --- Step 4: Return Response ---
-
-    return new Response(
-      JSON.stringify({ 
-        image: `data:image/png;base64,${finalImageBase64}`,
-        prompt_used: subjectPrompt 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
 
   } catch (error: any) {
     console.error("Edge Function Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

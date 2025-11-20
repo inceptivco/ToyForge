@@ -1,11 +1,22 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ImageDisplay } from './components/ImageDisplay';
+import { AuthModal } from './components/AuthModal';
+import { CreditPurchaseModal } from './components/CreditPurchaseModal';
 import { CharacterConfig } from './types';
-import { DEFAULT_CONFIG } from './constants';
+import {
+  DEFAULT_CONFIG,
+  SKIN_TONES,
+  HAIR_STYLES,
+  HAIR_COLORS,
+  CLOTHING_ITEMS,
+  CLOTHING_COLORS,
+  ACCESSORIES,
+  EYE_COLORS
+} from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
-import { Box, Download, AlertCircle } from 'lucide-react';
+import { supabase } from './services/supabase';
+import { Box, Download, AlertCircle, User, Coins, LogOut, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
   const [config, setConfig] = useState<CharacterConfig>(DEFAULT_CONFIG);
@@ -14,20 +25,105 @@ const App: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+  // Auth & Credits State
+  const [user, setUser] = useState<any>(null);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Randomization Logic
+  const randomItem = <T extends { id: string }>(arr: T[]): string => arr[Math.floor(Math.random() * arr.length)].id;
+
+  const handleRandomize = () => {
+    const gender = Math.random() > 0.5 ? 'male' : 'female';
+    const validHair = HAIR_STYLES.filter(h => !h.gender || h.gender === gender);
+    const validClothes = CLOTHING_ITEMS.filter(c => !c.gender || c.gender === gender);
+
+    setConfig({
+      gender,
+      skinToneId: randomItem(SKIN_TONES),
+      hairStyleId: randomItem(validHair),
+      hairColorId: randomItem(HAIR_COLORS),
+      clothingId: randomItem(validClothes),
+      clothingColorId: randomItem(CLOTHING_COLORS),
+      accessoryId: randomItem(ACCESSORIES),
+      eyeColorId: randomItem(EYE_COLORS),
+    });
+  };
+
+  // Initial Load & Auth Check
+  useEffect(() => {
+    // Randomize on Load
+    handleRandomize();
+
+    // Check Session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchCredits(session.user.id);
+      setIsAuthLoading(false);
+    });
+
+    // Listen for Auth Changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchCredits(session.user.id);
+      else setCredits(null);
+    });
+
+    // Check for success/cancel query params from Stripe
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success')) {
+      setStatusMessage("Payment successful! Credits added.");
+      setTimeout(() => setStatusMessage(""), 5000);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchCredits = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', userId)
+      .single();
+
+    if (data) setCredits(data.credits_balance);
+  };
+
   const handleGenerate = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (credits !== null && credits < 1) {
+      setError("Insufficient credits. Please purchase more to continue.");
+      setIsPurchaseModalOpen(true);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setGeneratedImage(null);
     setStatusMessage("Initializing...");
-    
+
     try {
       const imageUrl = await generateCharacterPipeline(config, (status) => {
         setStatusMessage(status);
       });
       setGeneratedImage(imageUrl);
-    } catch (err) {
+      // Refresh credits after generation
+      fetchCredits(user.id);
+    } catch (err: any) {
       console.error(err);
-      setError("Failed to generate image. Please try again.");
+      if (err.message?.includes('Insufficient Credits') || err.status === 402) {
+        setError("Insufficient credits. Please purchase more to continue.");
+        setIsPurchaseModalOpen(true);
+      } else {
+        setError(err.message || "Failed to generate image. Please try again.");
+      }
     } finally {
       setIsLoading(false);
       setStatusMessage("");
@@ -36,17 +132,24 @@ const App: React.FC = () => {
 
   const handleDownload = () => {
     if (generatedImage) {
-        const link = document.createElement('a');
-        link.href = generatedImage;
-        link.download = `toy-forge-character-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      const link = document.createElement('a');
+      link.href = generatedImage;
+      link.download = `toy - forge - character - ${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <CreditPurchaseModal isOpen={isPurchaseModalOpen} onClose={() => setIsPurchaseModalOpen(false)} />
+
       {/* Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -61,56 +164,101 @@ const App: React.FC = () => {
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">3D Vinyl Generator</span>
             </div>
           </div>
-          
-          {generatedImage && (
-             <button 
-               onClick={handleDownload}
-               className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-md"
-             >
-               <Download size={16} />
-               Save Toy
-             </button>
-          )}
+
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 text-sm font-medium">
+                  <Coins size={16} className="text-amber-500" />
+                  <span>{credits !== null ? credits : '-'} Credits</span>
+                  <button
+                    onClick={() => setIsPurchaseModalOpen(true)}
+                    className="ml-2 p-1 bg-amber-200 hover:bg-amber-300 rounded-full text-amber-800 transition-colors"
+                    title="Buy Credits"
+                  >
+                    <Plus size={12} strokeWidth={3} />
+                  </button>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={20} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 font-medium text-sm transition-colors"
+              >
+                <User size={18} />
+                Sign In
+              </button>
+            )}
+
+            {generatedImage && (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-md"
+              >
+                <Download size={16} />
+                Save Toy
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-7rem)] min-h-[600px]">
-          
+
           {/* Left Panel: Configuration */}
           <div className="lg:col-span-4 flex flex-col h-full">
-             <ConfigPanel 
-               config={config} 
-               onChange={setConfig}
-               onGenerate={handleGenerate}
-               isGenerating={isLoading}
-             />
+            <ConfigPanel
+              config={config}
+              onChange={setConfig}
+              onGenerate={handleGenerate}
+              onRandomize={handleRandomize}
+              isGenerating={isLoading}
+            />
+            {!user && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-start gap-3">
+                <div className="p-1 bg-blue-100 rounded-full mt-0.5">
+                  <User size={14} />
+                </div>
+                <div>
+                  <p className="font-semibold">Sign in to generate</p>
+                  <p className="opacity-80 mt-1">Create an account to get 3 free credits and start creating your toys.</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Panel: Preview */}
           <div className="lg:col-span-8 flex flex-col h-full">
-             <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 overflow-hidden relative flex flex-col">
-                {error && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-50 text-red-600 px-4 py-2 rounded-full text-sm font-medium border border-red-100 flex items-center gap-2 shadow-sm">
-                        <AlertCircle size={16} />
-                        {error}
-                    </div>
-                )}
-                {/* Pass the specific status message to the display */}
-                <ImageDisplay imageUrl={generatedImage} isLoading={isLoading} />
-                
-                {isLoading && (
-                   <div className="absolute bottom-8 left-0 right-0 text-center z-20">
-                      <span className="inline-block px-4 py-1.5 bg-white/80 backdrop-blur rounded-full text-sm font-medium text-brand-600 shadow-sm border border-brand-100 animate-pulse">
-                        {statusMessage}
-                      </span>
-                   </div>
-                )}
-             </div>
-             <p className="text-center text-xs text-slate-400 mt-3">
-                AI-generated preview with automated background removal.
-             </p>
+            <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 overflow-hidden relative flex flex-col">
+              {error && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-50 text-red-600 px-4 py-2 rounded-full text-sm font-medium border border-red-100 flex items-center gap-2 shadow-sm">
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
+              {/* Pass the specific status message to the display */}
+              <ImageDisplay imageUrl={generatedImage} isLoading={isLoading} />
+
+              {isLoading && (
+                <div className="absolute bottom-8 left-0 right-0 text-center z-20">
+                  <span className="inline-block px-4 py-1.5 bg-white/80 backdrop-blur rounded-full text-sm font-medium text-brand-600 shadow-sm border border-brand-100 animate-pulse">
+                    {statusMessage}
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-center text-xs text-slate-400 mt-3">
+              AI-generated preview with automated background removal.
+            </p>
           </div>
 
         </div>
