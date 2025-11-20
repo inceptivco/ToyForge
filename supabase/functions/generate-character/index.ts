@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
 
     if (apiKeyHeader) {
       // Validate API Key
-      // Format: sk_toyforge_[hex]
+      // Format: sk_characterforge_[hex]
       // We need to hash it to compare with DB
       const encoder = new TextEncoder();
       const data = encoder.encode(apiKeyHeader);

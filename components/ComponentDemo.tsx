@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ToyForgeEmbed } from './ToyForgeEmbed';
+import { CharacterForgeEmbed } from './CharacterForgeEmbed';
 import { Code, Eye, Copy, Check, Smartphone, ArrowRight, RefreshCw } from 'lucide-react';
 
 // Three SPECIFIC character configurations with their images (different from carousel)
@@ -40,6 +40,7 @@ const CHARACTER_CONFIGS = [
 export const ComponentDemo: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'react' | 'react-native'>('react');
     const [isCopied, setIsCopied] = useState(false);
+    const [isInstallCopied, setIsInstallCopied] = useState(false);
     const [triggerLoading, setTriggerLoading] = useState(false);
     const [currentConfigIndex, setCurrentConfigIndex] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,24 +48,9 @@ export const ComponentDemo: React.FC = () => {
 
     const currentConfig = CHARACTER_CONFIGS[currentConfigIndex];
 
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setTriggerLoading(true);
-                    observer.disconnect();
-                }
-            },
-            { threshold: 0.5 }
-        );
-
-        if (demoRef.current) {
-            observer.observe(demoRef.current);
-        }
-
-        return () => observer.disconnect();
-    }, []);
-
+    // Removed IntersectionObserver to prevent auto-loading on scroll
+    // The component will start with the default character and only load when manually refreshed
+    
     const handleRefresh = () => {
         setIsRefreshing(true);
         setTriggerLoading(false);
@@ -77,7 +63,7 @@ export const ComponentDemo: React.FC = () => {
     };
 
     const getInstallCommand = () => {
-        return activeTab === 'react-native' ? 'npm install @toyforge/react-native' : 'npm install @toyforge/react';
+        return activeTab === 'react-native' ? 'npm install @characterforge/react-native' : 'npm install @characterforge/react';
     };
 
     const handleCopy = () => {
@@ -86,24 +72,110 @@ export const ComponentDemo: React.FC = () => {
         setTimeout(() => setIsCopied(false), 2000);
     };
 
+    const handleInstallCopy = () => {
+        navigator.clipboard.writeText(getInstallCommand());
+        setIsInstallCopied(true);
+        setTimeout(() => setIsInstallCopied(false), 2000);
+    };
+
+    const highlightCode = (code: string): JSX.Element => {
+        const lines = code.split('\n');
+        const keywords = ['import', 'export', 'const', 'return', 'from', 'true', 'false'];
+        const components = ['CharacterForge', 'CharacterForgeView', 'MobileCharacter', 'MyCharacter'];
+        
+        return (
+            <>
+                {lines.map((line, lineIdx) => {
+                    // Simple regex-based highlighting
+                    const parts: Array<{ text: string; className: string }> = [];
+                    let lastIndex = 0;
+                    
+                    // Match strings (single or double quotes)
+                    const stringRegex = /(['"`])(?:(?=(\\?))\2.)*?\1/g;
+                    let match;
+                    
+                    while ((match = stringRegex.exec(line)) !== null) {
+                        // Add text before string
+                        if (match.index > lastIndex) {
+                            const before = line.substring(lastIndex, match.index);
+                            parts.push(...highlightNonStrings(before, keywords, components));
+                        }
+                        // Add string
+                        parts.push({ text: match[0], className: 'text-green-400' });
+                        lastIndex = match.index + match[0].length;
+                    }
+                    
+                    // Add remaining text
+                    if (lastIndex < line.length) {
+                        const remaining = line.substring(lastIndex);
+                        parts.push(...highlightNonStrings(remaining, keywords, components));
+                    }
+                    
+                    // If no strings found, highlight the whole line
+                    if (parts.length === 0) {
+                        parts.push(...highlightNonStrings(line, keywords, components));
+                    }
+                    
+                    return (
+                        <span key={lineIdx} className="block">
+                            {parts.map((part, partIdx) => (
+                                <span key={partIdx} className={part.className}>
+                                    {part.text}
+                                </span>
+                            ))}
+                            {lineIdx < lines.length - 1 && '\n'}
+                        </span>
+                    );
+                })}
+            </>
+        );
+    };
+    
+    const highlightNonStrings = (text: string, keywords: string[], components: string[]): Array<{ text: string; className: string }> => {
+        const parts: Array<{ text: string; className: string }> = [];
+        const words = text.split(/(\s+|[{}(),;:=<>[\]/])/);
+        
+        words.forEach(word => {
+            const trimmed = word.trim();
+            if (!trimmed) {
+                parts.push({ text: word, className: 'text-slate-300' });
+                return;
+            }
+            
+            if (keywords.includes(trimmed)) {
+                parts.push({ text: word, className: 'text-purple-400' });
+            } else if (components.includes(trimmed) || /^[A-Z][a-zA-Z]*$/.test(trimmed)) {
+                parts.push({ text: word, className: 'text-blue-400' });
+            } else if (/^\d+$/.test(trimmed)) {
+                parts.push({ text: word, className: 'text-orange-400' });
+            } else if (/^[{}(),;:=<>[\]/]+$/.test(trimmed)) {
+                parts.push({ text: word, className: 'text-slate-400' });
+            } else {
+                parts.push({ text: word, className: 'text-slate-300' });
+            }
+        });
+        
+        return parts;
+    };
+
     const getSnippet = () => {
         const configString = `{
-        gender: '${currentConfig.gender}',
-        skinToneId: '${currentConfig.skinToneId}',
-        hairStyleId: '${currentConfig.hairStyleId}',
-        hairColorId: '${currentConfig.hairColorId}',
-        clothingColorId: '${currentConfig.clothingColorId}',
-        eyeColorId: '${currentConfig.eyeColorId}'${currentConfig.accessoryId !== 'none' ? `,\n        accessoryId: '${currentConfig.accessoryId}'` : ''}
-      }`;
+    gender: '${currentConfig.gender}',
+    skinToneId: '${currentConfig.skinToneId}',
+    hairStyleId: '${currentConfig.hairStyleId}',
+    hairColorId: '${currentConfig.hairColorId}',
+    clothingColorId: '${currentConfig.clothingColorId}',
+    eyeColorId: '${currentConfig.eyeColorId}'${currentConfig.accessoryId !== 'none' ? `,\n    accessoryId: '${currentConfig.accessoryId}'` : ''}
+  }`;
 
         if (activeTab === 'react-native') {
-            return `import { CharacterForgeView } from '@toyforge/react-native';
+            return `import { CharacterForgeView } from '@characterforge/react-native';
 
 export const MobileCharacter = () => {
   return (
     <CharacterForgeView
       apiKey={process.env.CHARACTER_FORGE_KEY}
-      config=${configString}
+      config={${configString}}
       cache={true}
       transparent={true}
       style={{ width: 300, height: 300 }}
@@ -111,13 +183,13 @@ export const MobileCharacter = () => {
   );
 };`;
         }
-        return `import { CharacterForge } from '@toyforge/react';
+        return `import { CharacterForge } from '@characterforge/react';
 
 export const MyCharacter = () => {
   return (
     <CharacterForge
       apiKey={process.env.CHARACTER_FORGE_KEY}
-      config=${configString}
+      config={${configString}}
       cache={true}
       transparent={true}
       onGenerate={(url) => console.log(url)}
@@ -130,20 +202,13 @@ export const MyCharacter = () => {
         <div className="w-full max-w-7xl mx-auto" ref={demoRef}>
             {/* Character and Code - Same Height, No Nested Container */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* Left Side: Preview - Direct ToyForgeEmbed without container */}
-                <div className="flex items-center justify-center bg-gradient-to-br from-slate-50 to-white rounded-3xl border border-slate-200 shadow-2xl h-[700px] relative overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] z-0" />
-
-                    {!isRefreshing && (
-                        <div className="relative z-10 transform scale-150 transition-transform duration-500">
-                            <ToyForgeEmbed
-                                triggerLoading={triggerLoading}
-                                config={currentConfig}
-                                imageUrl={currentConfig.imageUrl}
-                            />
-                        </div>
-                    )}
+                {/* Left Side: Preview - Direct CharacterForgeEmbed without container */}
+                <div className="flex items-center justify-center h-[700px]">
+                    <CharacterForgeEmbed
+                        triggerLoading={triggerLoading}
+                        config={currentConfig}
+                        imageUrl={currentConfig.imageUrl}
+                    />
                 </div>
 
                 {/* Right Side: Code */}
@@ -214,9 +279,9 @@ export const MyCharacter = () => {
                         </div>
 
                         {/* Code Content - No scroll, fits perfectly */}
-                        <div className="flex-1 p-8 flex items-center justify-center font-mono text-sm leading-relaxed">
-                            <pre className="text-slate-300">
-                                <code>{getSnippet()}</code>
+                        <div className="flex-1 p-8 overflow-auto font-mono text-sm leading-relaxed">
+                            <pre className="text-slate-300 whitespace-pre-wrap">
+                                <code>{highlightCode(getSnippet())}</code>
                             </pre>
                         </div>
                     </div>
@@ -224,22 +289,29 @@ export const MyCharacter = () => {
             </div>
 
             {/* Installation Package - Full Width Below */}
-            <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-8">
+            <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-end justify-between gap-8">
                 <div className="flex-1 w-full">
                     <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Install Package</div>
-                    <div className="flex items-center gap-4 bg-slate-800 rounded-xl px-5 py-4 font-mono text-sm text-brand-400 border border-slate-700 shadow-inner">
+                    <div className="flex items-center gap-4 bg-slate-800 rounded-xl px-5 py-4 font-mono text-sm text-brand-400 border border-slate-700 shadow-inner h-[54px]">
                         <span>{getInstallCommand()}</span>
                         <button
-                            onClick={() => navigator.clipboard.writeText(getInstallCommand())}
-                            className="ml-auto text-slate-500 hover:text-white transition-colors"
+                            onClick={handleInstallCopy}
+                            className="ml-auto text-slate-500 hover:text-white transition-colors flex items-center gap-2 p-2 -mr-2"
                         >
-                            <Copy size={16} />
+                            {isInstallCopied ? (
+                                <>
+                                    <Check size={16} className="text-green-500" />
+                                    <span className="text-green-500 text-xs font-bold">Copied!</span>
+                                </>
+                            ) : (
+                                <Copy size={16} />
+                            )}
                         </button>
                     </div>
                 </div>
                 <a
                     href="#"
-                    className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/40 whitespace-nowrap transform hover:-translate-y-0.5"
+                    className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/40 whitespace-nowrap transform hover:-translate-y-0.5 h-[54px]"
                 >
                     Read the Docs <ArrowRight size={20} />
                 </a>

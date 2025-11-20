@@ -5,29 +5,44 @@ export const ApiDemo: React.FC = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [response, setResponse] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
+    
+    // Fixed values for canned demo
+    const gender = 'female';
+    const skinTone = 'light';
+    const hairStyle = 'bob';
+    const clothingColor = 'blue';
+
+    // Fixed response for consistent demo
+    const DEMO_RESPONSE = {
+        "image": "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png",
+        "cached": false,
+        "transparent": true,
+        "credits_remaining": 42,
+        "config": {
+            gender,
+            skinToneId: skinTone,
+            hairStyleId: hairStyle,
+            clothingColorId: clothingColor
+        }
+    };
 
     const sampleCurl = `curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-character \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "gender": "female",
-    "skinToneId": "light",
-    "hairStyleId": "bob",
-    "clothingColorId": "blue"
+    "gender": "${gender}",
+    "skinToneId": "${skinTone}",
+    "hairStyleId": "${hairStyle}",
+    "clothingColorId": "${clothingColor}"
   }'`;
 
     const handleRun = () => {
         setIsRunning(true);
         setResponse(null);
 
-        // Simulate network delay
+        // Simulate network delay with fixed response for canned demo
         setTimeout(() => {
-            setResponse(JSON.stringify({
-                "image": "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png",
-                "cached": false,
-                "transparent": true,
-                "credits_remaining": 42
-            }, null, 2));
+            setResponse(JSON.stringify(DEMO_RESPONSE, null, 2));
             setIsRunning(false);
         }, 1500);
     };
@@ -65,15 +80,35 @@ export const ApiDemo: React.FC = () => {
                     </div>
                     <div className="flex-1 bg-[#1e1e1e] text-blue-400 overflow-x-auto">
                         <pre className="whitespace-pre-wrap break-all">
-                            <span className="text-purple-400">curl</span> -X POST <span className="text-green-400">.../generate-character</span> \<br />
-                            {'  '}-H <span className="text-orange-400">"Authorization: Bearer KEY"</span> \<br />
-                            {'  '}-H <span className="text-orange-400">"Content-Type: application/json"</span> \<br />
-                            {'  '}-d <span className="text-yellow-300">'{`{
-    "gender": "female",
-    "skinToneId": "light",
-    "hairStyleId": "bob",
-    "clothingColorId": "blue"
-  }'`}</span>
+                            <span className="text-purple-400">curl</span> -X POST <span className="text-green-400">.../generate-character</span> {'\\'}<br />
+                            {'  '}-H <span className="text-orange-400">"Authorization: Bearer KEY"</span> {'\\'}<br />
+                            {'  '}-H <span className="text-orange-400">"Content-Type: application/json"</span> {'\\'}<br />
+                            {'  '}-d <span className="text-yellow-300">{'\''}{'{'}<br />
+    {'"gender"'}:
+                            </span>
+                            <span className="text-yellow-300 underline font-bold">
+                                "{gender}"
+                            </span>
+                            <span className="text-yellow-300">,<br />
+    {'"skinToneId"'}:
+                            </span>
+                            <span className="text-yellow-300 underline font-bold">
+                                "{skinTone}"
+                            </span>
+                            <span className="text-yellow-300">,<br />
+    {'"hairStyleId"'}:
+                            </span>
+                            <span className="text-yellow-300 underline font-bold">
+                                "{hairStyle}"
+                            </span>
+                            <span className="text-yellow-300">,<br />
+    {'"clothingColorId"'}:
+                            </span>
+                            <span className="text-yellow-300 underline font-bold">
+                                "{clothingColor}"
+                            </span>
+                            <span className="text-yellow-300"><br />
+  {'}'}{'\''}</span>
                         </pre>
                     </div>
                     <button
@@ -105,22 +140,31 @@ export const ApiDemo: React.FC = () => {
                                 <pre className="text-slate-300 overflow-auto custom-scrollbar">
                                     {response}
                                 </pre>
-                                <div className="mt-4 p-2 bg-slate-800/50 rounded border border-slate-700/50 inline-block">
-                                    <div className="text-[10px] text-slate-500 mb-1">Preview (from URL)</div>
-                                    {/* Preview Image */}
-                                    <div className="w-24 h-24 bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-                                        <img
-                                            src="https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png"
-                                            alt="Preview"
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
-                                </div>
+                                {(() => {
+                                    try {
+                                        const responseData = JSON.parse(response);
+                                        return (
+                                            <div className="mt-4 p-2 bg-slate-800/50 rounded border border-slate-700/50 inline-block">
+                                                <div className="text-[10px] text-slate-500 mb-1">Preview (from URL)</div>
+                                                {/* Preview Image */}
+                                                <div className="w-24 h-24 bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+                                                    <img
+                                                        src={responseData.image}
+                                                        alt="Preview"
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    } catch {
+                                        return null;
+                                    }
+                                })()}
                             </div>
                         ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
-                                <Terminal size={32} className="mb-2 opacity-20" />
-                                <p>Waiting for request...</p>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                                <Terminal size={32} className="mb-2 opacity-50" />
+                                <p className="font-mono">Waiting for request...</p>
                             </div>
                         )}
                     </div>

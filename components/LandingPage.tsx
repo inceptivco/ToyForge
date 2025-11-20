@@ -48,7 +48,7 @@ export const LandingPage: React.FC = () => {
                         </div>
                         <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
                             <span className="text-slate-900">Effortlessly integrate</span> <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-brand-500 to-purple-600">3D Avatars & Characters</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-brand-500 to-purple-600">3D Avatars & Characters</span>
                         </h1>
                         <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto">
                             The AI-powered engine for generating consistent, high-quality 3D assets.
@@ -82,13 +82,13 @@ export const LandingPage: React.FC = () => {
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f_original.png",
+                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png",
                                 // Set 2 (Duplicate for smooth loop)
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f_original.png",
+                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png",
                                 // Set 3 (Extra buffer)
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png",
                                 "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
@@ -276,7 +276,7 @@ export const LandingPage: React.FC = () => {
 
                         {/* API Demo Component */}
                         <div className="relative">
-                            <div className="absolute -inset-4 bg-gradient-to-r from-brand-500/20 to-purple-500/20 rounded-3xl blur-xl" />
+                            <div className="absolute -inset-4 bg-gradient-to-r from-brand-500/20 to-purple-500/20 rounded-3xl blur-xl pointer-events-none" />
                             <ApiDemo />
                         </div>
                     </div>

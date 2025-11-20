@@ -44,12 +44,12 @@ serve(async (req) => {
             case 'starter':
                 priceAmount = 500; // $5.00
                 credits = 50;
-                productName = 'ToyForge Starter Pack (50 Credits)';
+                productName = 'CharacterForge Starter Pack (50 Credits)';
                 break;
             case 'pro':
                 priceAmount = 1500; // $15.00
                 credits = 200;
-                productName = 'ToyForge Pro Pack (200 Credits)';
+                productName = 'CharacterForge Pro Pack (200 Credits)';
                 break;
             default:
                 throw new Error('Invalid pack ID');
@@ -65,7 +65,7 @@ serve(async (req) => {
                         product_data: {
                             name: productName,
                             description: `${credits} image generations`,
-                            images: ['https://toyforge.app/assets/logo.png'], // Placeholder
+                            images: ['https://characterforge.app/assets/logo.png'], // Placeholder
                         },
                         unit_amount: priceAmount,
                     },
