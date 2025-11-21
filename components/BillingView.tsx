@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
 import { Loader2, CreditCard, TrendingUp, AlertCircle } from 'lucide-react';
@@ -9,41 +10,59 @@ interface BillingViewProps {
 }
 
 export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
+    const location = useLocation();
     const [credits, setCredits] = useState<number | null>(null);
     const [apiCredits, setApiCredits] = useState<number | null>(null);
     const [usageData, setUsageData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
-    useEffect(() => {
-        if (user) {
-            fetchData();
-        } else {
-            setLoading(false);
+    const fetchData = useCallback(async () => {
+        if (!user) {
+            console.warn('[BillingView] No user provided, cannot fetch data');
+            return;
         }
-    }, [user]);
-
-    const fetchData = async () => {
+        
+        console.log('[BillingView] Fetching data for user:', user.id);
         setLoading(true);
         try {
             // Fetch Profile (Credits)
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('credits_balance, api_credits_balance')
                 .eq('id', user.id)
                 .single();
 
-            if (profile) {
-                setCredits(profile.credits_balance);
-                setApiCredits(profile.api_credits_balance);
+            if (profileError) {
+                console.error('[BillingView] Error fetching profile:', profileError);
+                return;
             }
 
-            // Fetch Usage History (Generations)
-            const { data: generations } = await supabase
+            console.log('[BillingView] Profile data received:', profile);
+            
+            if (profile) {
+                const apiCreds = profile.api_credits_balance ?? 0;
+                const appCreds = profile.credits_balance ?? 0;
+                console.log('[BillingView] Setting credits - API:', apiCreds, 'App:', appCreds);
+                setCredits(appCreds);
+                setApiCredits(apiCreds);
+            } else {
+                console.warn('[BillingView] No profile data found');
+                setCredits(0);
+                setApiCredits(0);
+            }
+
+            // Fetch Usage History (Generations) - includes both app and API generations
+            const { data: generations, error: genError } = await supabase
                 .from('generations')
                 .select('created_at, cost_in_credits')
                 .eq('user_id', user.id)
-                .order('created_at', { ascending: true });
+                .order('created_at', { ascending: false })
+                .limit(100); // Get recent 100 generations
+            
+            if (genError) {
+                console.error('Error fetching generations:', genError);
+            }
 
             if (generations) {
                 // Group by date
@@ -67,10 +86,84 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    // Initial fetch when component mounts or user changes
+    useEffect(() => {
+        if (user) {
+            fetchData();
+        } else {
+            setLoading(false);
+        }
+    }, [user?.id]); // Only depend on user.id to avoid infinite loops
+
+    // Refresh data periodically to catch updates (only when user exists)
+    useEffect(() => {
+        if (!user) return;
+        
+        // Initial fetch
+        fetchData();
+        
+        const interval = setInterval(() => {
+            fetchData();
+        }, 10000); // Refresh every 10 seconds (reduced frequency to avoid infinite loops)
+        
+        return () => clearInterval(interval);
+    }, [user?.id]); // Only depend on user.id, not the whole user object or fetchData
+
+    // Handle success/canceled params from Stripe redirect
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('success') === 'true') {
+            // Clean up URL first
+            window.history.replaceState({}, '', location.pathname);
+            
+            // Refresh data with retry mechanism - webhook may take a moment to process
+            if (user) {
+                let retries = 0;
+                const maxRetries = 5;
+                const retryDelay = 2000; // 2 seconds between retries
+                
+                const fetchWithRetry = async () => {
+                    await fetchData();
+                    
+                    // Wait a moment for webhook to process
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Check if credits were updated
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('api_credits_balance')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    retries++;
+                    
+                    // If still 0 and we haven't exceeded retries, try again
+                    if (profile && profile.api_credits_balance === 0 && retries < maxRetries) {
+                        setTimeout(fetchWithRetry, retryDelay);
+                    }
+                };
+                
+                // Initial fetch with delay to allow webhook to process
+                setTimeout(fetchWithRetry, 2000);
+            }
+        } else if (params.get('canceled') === 'true') {
+            window.history.replaceState({}, '', location.pathname);
+        }
+    }, [location, user, fetchData]);
 
     // Estimated Value Calculation (assuming ~$0.10 per credit for display)
-    const estimatedValue = apiCredits !== null ? (apiCredits * 0.10).toFixed(2) : '0.00';
+    const estimatedValue = (apiCredits !== null && apiCredits > 0)
+        ? (apiCredits * 0.10).toFixed(2) 
+        : (credits !== null && credits > 0)
+        ? (credits * 0.15).toFixed(2)
+        : '0.00';
+    
+    // Debug logging
+    if (apiCredits === null && credits === null) {
+        console.log('[BillingView] State values are null - user:', user?.id);
+    }
 
     if (loading) {
         return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand-600" size={32} /></div>;
@@ -81,6 +174,34 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
             <h1 className="text-3xl font-bold text-slate-900 mb-8">Billing & Usage</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                {/* Pricing Info */}
+                <div className="md:col-span-2 bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                    <h2 className="text-xl font-bold text-slate-900 mb-4">Pricing & Credits</h2>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 className="font-semibold text-slate-900 mb-2">API Usage</h3>
+                            <p className="text-slate-600 mb-2">
+                                The CharacterForge API uses a simple flat-rate pricing model.
+                            </p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-slate-900">$0.10</span>
+                                <span className="text-slate-500">/ generation</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-slate-900 mb-2">Credit System</h3>
+                            <p className="text-slate-600 mb-2">
+                                Purchase credits to use for both API calls and App generations.
+                            </p>
+                            <ul className="text-sm text-slate-500 list-disc list-inside">
+                                <li>Minimum purchase: $5.00</li>
+                                <li>Credits never expire</li>
+                                <li>One simple balance for everything</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Balance Card */}
                 <div className="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -131,9 +252,9 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
                         <span className="text-sm text-slate-500">Last 7 active days</span>
                     </div>
 
-                    <div className="h-64 w-full">
+                    <div className="h-64 w-full min-h-[256px]">
                         {usageData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={256}>
                                 <BarChart data={usageData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis

@@ -22,31 +22,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                         <span className="text-lg font-bold tracking-tight text-slate-900">CharacterForge</span>
                     </div>
                     <div className="flex items-center gap-8">
-                        {user ? (
-                            <>
-                                <div className="hidden md:flex items-center gap-6">
-                                    <Link to="/developer" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">API & SDK</Link>
-                                </div>
-                                <Link
-                                    to="/app"
-                                    className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
-                                >
-                                    Launch App
-                                </Link>
-                            </>
-                        ) : (
-                            <>
-                                <div className="hidden md:flex items-center gap-6">
-                                    <Link to="/developer/docs" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Documentation</Link>
-                                </div>
-                                <button
-                                    onClick={onSignInClick}
-                                    className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg active:scale-95"
-                                >
-                                    Sign In
-                                </button>
-                            </>
-                        )}
+                        <div className="hidden md:flex items-center gap-6">
+                            <Link to="/developer/docs" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Documentation</Link>
+                        </div>
+                        <Link
+                            to="/app"
+                            className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
+                        >
+                            Launch App
+                        </Link>
                     </div>
                 </div>
             </nav>
@@ -185,8 +169,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <h3 className="text-xl font-bold text-slate-900">CharacterForge App</h3>
                             </div>
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-slate-900">$0.10</span>
-                                <span className="text-slate-500"> / generation</span>
+                                <div className="flex items-baseline">
+                                    <span className="text-4xl font-bold text-slate-900">$0.15</span>
+                                    <span className="text-slate-500 ml-2">/ generation</span>
+                                </div>
+                                <p className="text-sm text-green-600 mt-2 font-medium">
+                                    Discounted to $0.12 or $0.10 with credit packs
+                                </p>
                             </div>
                             <ul className="space-y-4 mb-8">
                                 <li className="flex items-center gap-3 text-slate-600">
@@ -219,13 +208,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <h3 className="text-xl font-bold text-slate-900">API & SDK</h3>
                             </div>
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-slate-900">$0.08</span>
-                                <span className="text-slate-500"> / generation</span>
+                                <div className="flex items-baseline">
+                                    <span className="text-4xl font-bold text-slate-900">$0.10</span>
+                                    <span className="text-slate-500 ml-2">/ generation</span>
+                                </div>
+                                <p className="text-sm text-brand-600 mt-2 font-medium">
+                                    Flat rate for all API usage
+                                </p>
                             </div>
                             <ul className="space-y-4 mb-8">
                                 <li className="flex items-center gap-3 text-slate-600">
                                     <CheckCircle2 size={18} className="text-green-500" />
-                                    <span>Volume Discounts Available</span>
+                                    <span>No minimum commitment</span>
                                 </li>
                                 <li className="flex items-center gap-3 text-slate-600">
                                     <CheckCircle2 size={18} className="text-green-500" />

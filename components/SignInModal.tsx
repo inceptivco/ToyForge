@@ -45,9 +45,17 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, redir
 
     if (!isOpen) return null;
 
+    const isSuccess = message?.type === 'success';
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in zoom-in-95 duration-200">
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={isSuccess ? undefined : onClose}
+        >
+            <div 
+                className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-100 transition-colors"
@@ -63,48 +71,58 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, redir
                         </svg>
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Sign In</h2>
-                    <p className="text-slate-600">Enter your email to receive a magic link</p>
+                    <p className="text-slate-600">
+                        {isSuccess ? 'Magic link sent!' : 'Enter your email to receive a magic link'}
+                    </p>
                 </div>
 
-                <form onSubmit={handleMagicLink} className="space-y-4">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
-                            required
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                        />
-                    </div>
+                {!isSuccess ? (
+                    <>
+                        <form onSubmit={handleMagicLink} className="space-y-4">
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                                    Email Address
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="you@example.com"
+                                    required
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                />
+                            </div>
 
-                    {message && (
-                        <div
-                            className={`p-4 rounded-xl text-sm ${message.type === 'success'
-                                ? 'bg-green-50 text-green-800 border border-green-200'
-                                : 'bg-red-50 text-red-800 border border-red-200'
-                                }`}
-                        >
+                            {message && message.type === 'error' && (
+                                <div className="p-4 rounded-xl text-sm bg-red-50 text-red-800 border border-red-200">
+                                    {message.text}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-3 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? 'Sending...' : 'Send Magic Link'}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center text-sm text-slate-500">
+                            No password required. We'll send you a secure link to sign in.
+                        </div>
+                    </>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-xl text-sm bg-green-50 text-green-800 border border-green-200">
                             {message.text}
                         </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? 'Sending...' : 'Send Magic Link'}
-                    </button>
-                </form>
-
-                <div className="mt-6 text-center text-sm text-slate-500">
-                    No password required. We'll send you a secure link to sign in.
-                </div>
+                        <div className="text-center text-sm text-slate-500">
+                            No password required. We'll send you a secure link to sign in.
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

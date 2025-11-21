@@ -335,7 +335,12 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
         <Route path="/" element={<LandingPage user={user} onSignInClick={() => setIsSignInOpen(true)} />} />
         <Route path="/app" element={<MainApp />} />

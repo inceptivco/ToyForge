@@ -36,7 +36,7 @@ export const CharacterForgeEmbed: React.FC<CharacterForgeEmbedProps> = ({
     const isLoading = externalIsLoading !== undefined ? externalIsLoading : internalIsLoading;
 
     // Initialize with the default image always to ensure smooth transition from default -> generated
-    const [image, setImage] = useState<string | null>("https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png");
+    const [image, setImage] = useState<string | null>("https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/default-character.png");
 
     useEffect(() => {
         if (triggerLoading) {

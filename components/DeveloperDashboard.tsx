@@ -28,20 +28,6 @@ export const DeveloperDashboard: React.FC = () => {
     // Remove manual view state
     // const [view, setView] = useState<'dashboard' | 'billing' | 'settings' | 'docs'>('dashboard');
 
-    useEffect(() => {
-        // Check for success/canceled params
-        const params = new URLSearchParams(location.search);
-        if (params.get('success') === 'true') {
-            // Show success message
-            window.history.replaceState({}, '', location.pathname);
-            // Force refresh user data
-            checkUser();
-            alert('Payment successful! Your credits have been updated.');
-        } else if (params.get('canceled') === 'true') {
-            window.history.replaceState({}, '', location.pathname);
-        }
-    }, [location]);
-
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSignInOpen, setIsSignInOpen] = useState(false);
@@ -99,6 +85,81 @@ export const DeveloperDashboard: React.FC = () => {
     useEffect(() => {
         checkUser();
     }, []);
+
+    // Handle success/canceled params from Stripe redirect
+    useEffect(() => {
+        // Check for success/canceled params
+        const params = new URLSearchParams(location.search);
+        if (params.get('success') === 'true') {
+            // Clean up URL first
+            window.history.replaceState({}, '', location.pathname);
+            
+            // Wait for webhook to process and verify credits were added
+            const checkCreditsUpdated = async () => {
+                if (!user) {
+                    // User not loaded yet, wait a bit and try again
+                    setTimeout(checkCreditsUpdated, 1000);
+                    return;
+                }
+                
+                // Get current balance before purchase attempt
+                const { data: initialProfile } = await supabase
+                    .from('profiles')
+                    .select('credits_balance, api_credits_balance')
+                    .eq('id', user.id)
+                    .single();
+                
+                const previousApiCredits = initialProfile?.api_credits_balance || 0;
+                const previousCredits = initialProfile?.credits_balance || 0;
+                
+                let retries = 0;
+                const maxRetries = 8;
+                const retryDelay = 2000; // 2 seconds between retries
+                
+                const pollForCredits = async () => {
+                    // Wait a moment for webhook to process
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    // Check if credits were updated
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('credits_balance, api_credits_balance')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    retries++;
+                    
+                    if (profile) {
+                        const creditsUpdated = profile.credits_balance > previousCredits || 
+                                             profile.api_credits_balance > previousApiCredits;
+                        
+                        if (creditsUpdated) {
+                            // Credits were updated, refresh and show success
+                            await checkUser();
+                            alert('Payment successful! Your credits have been updated.');
+                            return;
+                        } else if (retries < maxRetries) {
+                            // Credits not updated yet, retry
+                            setTimeout(pollForCredits, retryDelay);
+                        } else {
+                            // Max retries reached, credits still not updated
+                            await checkUser(); // Refresh anyway
+                            alert('Payment processed, but credits are still updating. Please refresh the page in a moment. If credits don\'t appear, contact support.');
+                        }
+                    } else if (retries < maxRetries) {
+                        setTimeout(pollForCredits, retryDelay);
+                    }
+                };
+                
+                // Start checking after initial delay
+                setTimeout(pollForCredits, 2000);
+            };
+            
+            checkCreditsUpdated();
+        } else if (params.get('canceled') === 'true') {
+            window.history.replaceState({}, '', location.pathname);
+        }
+    }, [location, user]);
 
     // Route protection
     useEffect(() => {
@@ -200,16 +261,27 @@ export const DeveloperDashboard: React.FC = () => {
                                 </Link>
                             </>
                         )}
-                        <Link
-                            to="/developer/docs"
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer/docs'
-                                ? 'bg-brand-50 text-brand-700 font-medium shadow-sm ring-1 ring-brand-200'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                                }`}
-                        >
-                            <FileText size={20} className={location.pathname === '/developer/docs' ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'} />
-                            Documentation
-                        </Link>
+                        <div>
+                            <Link
+                                to="/developer/docs"
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer/docs'
+                                    ? user 
+                                        ? 'bg-brand-50 text-brand-700 font-medium shadow-sm'
+                                        : 'bg-brand-50 text-brand-700 font-medium'
+                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                    }`}
+                            >
+                                <FileText size={20} className={location.pathname === '/developer/docs' ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'} />
+                                <span>Documentation</span>
+                            </Link>
+                            {!user && (
+                                <div className="px-4 py-3 mx-4 mt-2 mb-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p className="text-xs text-blue-700 leading-relaxed">
+                                        Sign in to developer dashboard to create API key's, buy credits and view usage.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         {user && (
                             <Link
                                 to="/developer/settings"
@@ -237,7 +309,9 @@ export const DeveloperDashboard: React.FC = () => {
                                         </div>
                                         <div className="flex-1 text-left overflow-hidden">
                                             <p className="text-sm font-medium text-slate-900 truncate">{user.email}</p>
-                                            <p className="text-xs text-slate-500 truncate">Free Plan</p>
+                                            <p className="text-xs text-slate-500 truncate">
+                                                Balance: ${apiCredits !== null ? (apiCredits * 0.10).toFixed(2) : credits !== null ? (credits * 0.15).toFixed(2) : '0.00'}
+                                            </p>
                                         </div>
                                         <ChevronUp size={16} className={`text-slate-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
                                     </button>
@@ -305,11 +379,7 @@ export const DeveloperDashboard: React.FC = () => {
                                 />
                             } />
                             <Route path="billing" element={
-                                <BillingView
-                                    credits={credits}
-                                    apiCredits={apiCredits}
-                                    onPurchase={() => setIsPurchaseModalOpen(true)}
-                                />
+                                <BillingView user={user} />
                             } />
                             <Route path="settings" element={<SettingsView user={user} />} />
                             <Route path="docs" element={<DocsView />} />

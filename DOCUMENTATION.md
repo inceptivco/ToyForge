@@ -407,9 +407,9 @@ print(f"Credits remaining: {result['credits_remaining']}")
 
 ## Pricing
 
-- **Per Generation**: $0.08 - $0.10
-- **Volume Discounts**: Available for API users
-- **Credits**: Purchase credits in packs (50, 200, etc.)
+- **API Pricing**: Flat rate of **$0.10 per generation**. No monthly fees.
+- **App Pricing**: Starts at **$0.15 per generation**, with volume discounts down to **$0.10** when purchasing credit packs.
+- **Credits**: Purchase credits in packs (Starter: 50 credits, Pro: 200 credits). Credits never expire.
 
 ---
 

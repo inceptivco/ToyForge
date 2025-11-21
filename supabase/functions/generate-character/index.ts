@@ -112,6 +112,8 @@ const PROMPT_MAPS: any = {
 async function hashConfig(config: any): Promise<string> {
   // Sort keys to ensure deterministic hash
   const sortedConfig = Object.keys(config).sort().reduce((obj: any, key) => {
+    // Exclude cache from hash as it doesn't affect the image
+    if (key === 'cache') return obj;
     obj[key] = config[key];
     return obj;
   }, {});
@@ -123,12 +125,54 @@ async function hashConfig(config: any): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function authenticateUser(req: Request, supabase: any): Promise<string> {
+  const authHeader = req.headers.get('Authorization');
+  const apiKeyHeader = req.headers.get('x-api-key');
+  
+  // Try API Key authentication first
+  if (apiKeyHeader) {
+    const apiKey = apiKeyHeader.replace(/^Bearer\s+/i, '').trim();
+    console.log('[generate-character] Authenticating with API key:', apiKey.substring(0, 10) + '...');
+    
+    // Look up API key in database
+    const { data: apiKeyData, error: apiKeyError } = await supabase
+      .from('api_keys')
+      .select('user_id, is_active')
+      .eq('key', apiKey)
+      .single();
+    
+    if (apiKeyError || !apiKeyData || !apiKeyData.is_active) {
+      throw new Error('Invalid or inactive API key');
+    }
+    
+    return apiKeyData.user_id;
+  }
+  
+  // Try Bearer token authentication
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    console.log('[generate-character] Authenticating with Bearer token');
+    
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      throw new Error('Invalid authentication token');
+    }
+    
+    return user.id;
+  }
+  
+  throw new Error('No authentication provided. Please provide either an API key (x-api-key header) or Bearer token (Authorization header)');
+}
+
 // --- Main Handler ---
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  let userId: string | null = null;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -148,8 +192,14 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-    // 1. Parse Request
+    // 1. Authenticate User
+    userId = await authenticateUser(req, supabase);
+    console.log('[generate-character] Authenticated user:', userId);
+
+    // 2. Parse Request
     const config = await req.json();
+    console.log('[generate-character] Received config:', JSON.stringify(config, null, 2));
+    
     const {
       gender,
       skinTone,
@@ -158,14 +208,77 @@ Deno.serve(async (req: Request) => {
       clothing,
       clothingColor,
       eyeColor,
-      accessories, // Now an array
-      transparent = true, // Default to transparent
-      cache = false // Default to no cache
+      accessories, // Array or single value
+      transparent = true,
+      cache = false
     } = config;
 
-    // ... (lines 160-232 unchanged)
+    // 3. Check Cache (if enabled)
+    if (cache !== false) {
+      const configHash = await hashConfig(config);
+      console.log('[generate-character] Checking cache for hash:', configHash);
+      
+      const { data: cachedGen } = await supabase
+        .from('generations')
+        .select('image_url, transparent')
+        .eq('config_hash', configHash)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (cachedGen?.image_url) {
+        console.log('[generate-character] Cache hit! Returning cached image');
+        return new Response(JSON.stringify({ 
+          image: cachedGen.image_url, 
+          cached: true, 
+          transparent: cachedGen.transparent || false 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
-    // 5. Generate Image
+    // 4. Check Credits
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('credits_balance, api_credits_balance')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    // Determine which credit balance to use (API vs App)
+    // If authenticated via API key, use api_credits_balance, otherwise use credits_balance
+    const authHeader = req.headers.get('Authorization');
+    const apiKeyHeader = req.headers.get('x-api-key');
+    const isApiRequest = !!apiKeyHeader;
+    const creditBalance = isApiRequest ? (profile.api_credits_balance || 0) : (profile.credits_balance || 0);
+
+    if (creditBalance < COST_PER_GENERATION) {
+      return new Response(JSON.stringify({ 
+        error: 'Insufficient credits. Please purchase more credits to continue generating characters.' 
+      }), { 
+        status: 402, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // 5. Deduct Credits BEFORE generation
+    console.log('[generate-character] Deducting credits. Balance before:', creditBalance);
+    const deductResult = await supabase.rpc('deduct_credits', {
+      p_user_id: userId,
+      p_amount: COST_PER_GENERATION,
+      p_ref_id: 'gen_' + Date.now()
+    });
+
+    if (deductResult.error) {
+      console.error('[generate-character] Failed to deduct credits:', deductResult.error);
+      throw new Error('Failed to deduct credits');
+    }
+
+    // 6. Generate Image
     try {
       // Construct Prompt
       const skinTonePrompt = PROMPT_MAPS.SKIN_TONES[skinTone] || PROMPT_MAPS.SKIN_TONES['medium'];
@@ -175,11 +288,13 @@ Deno.serve(async (req: Request) => {
       const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[clothingColor] || 'white';
       const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[clothing] || 't-shirt';
 
-      // Handle accessories array
-      const accessoriesList = Array.isArray(accessories) ? accessories : (accessories ? [accessories] : []);
+      // Handle accessories - support both array and single value (for backward compatibility)
+      const accessoriesList = Array.isArray(accessories) 
+        ? accessories 
+        : (accessories ? [accessories] : []);
       const validAccessories = accessoriesList.filter(a => a && a !== 'none');
       const accessoryPrompt = validAccessories.length > 0
-        ? `wearing ${validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a] || a).join(' and ')}`
+        ? validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a] || a).join(' and ')
         : '';
 
       const expressionPrompt = Math.random() > 0.5 ? 'a happy smiling expression' : 'a confident smirk';
@@ -198,20 +313,26 @@ Deno.serve(async (req: Request) => {
         Expression: ${expressionPrompt}.
         ${accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : negativePrompt}
       `;
+      
+      console.log('[generate-character] Generated prompt:', subjectPrompt);
+      
       const fullPrompt = `${STYLE_PROMPT} ${subjectPrompt}`;
 
-      // AI Generation (Imagen 3)
-      console.log("Generating base image...");
+      // AI Generation (Imagen 4)
+      console.log('[generate-character] Generating base image...');
       const imageResponse = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: fullPrompt,
         config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '1:1' },
       });
 
-      if (!imageResponse.generatedImages?.[0]?.image?.imageBytes) throw new Error("Failed to generate base image");
+      if (!imageResponse.generatedImages?.[0]?.image?.imageBytes) {
+        throw new Error("Failed to generate base image");
+      }
       const rawBase64 = imageResponse.generatedImages[0].image.imageBytes;
+      console.log('[generate-character] Base image generated successfully');
 
-      // 6. Upload Original to Storage (Backup)
+      // 7. Upload Original to Storage (Backup)
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(7);
       const originalFileName = `${userId}/${timestamp}_${randomId}_original.png`;
@@ -222,15 +343,13 @@ Deno.serve(async (req: Request) => {
         .from('generations')
         .upload(originalFileName, originalImageBuffer, { contentType: 'image/png' });
 
-      // --- Figma-Style Background Removal (Green Screen) ---
+      // 8. Background Removal (if transparent=true)
       let finalImageBase64 = rawBase64;
       let isTransparent = false;
 
-      // Only perform background removal if transparent parameter is true
       if (transparent) {
-        console.log("Generating Green Screen Mask (Gemini 2.5)...");
+        console.log('[generate-character] Generating Green Screen Mask (Gemini 2.5)...');
         try {
-          // 1. Generate "Green Screen" version
           const maskResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
@@ -245,7 +364,7 @@ Deno.serve(async (req: Request) => {
           const maskPart = maskResponse.candidates?.[0]?.content?.parts?.[0];
 
           if (maskPart?.inlineData?.data) {
-            console.log("Green screen generation successful. Extracting mask...");
+            console.log('[generate-character] Green screen generation successful. Extracting mask...');
 
             const { PNG } = await import("npm:pngjs@^7.0.0");
 
@@ -260,7 +379,7 @@ Deno.serve(async (req: Request) => {
 
             // Resize check
             if (maskPng.width !== width || maskPng.height !== height) {
-              console.warn("Mask dimensions mismatch. Skipping background removal.");
+              console.warn('[generate-character] Mask dimensions mismatch. Skipping background removal.');
               throw new Error("Dimension mismatch");
             }
 
@@ -276,7 +395,6 @@ Deno.serve(async (req: Request) => {
                 const mb = maskPng.data[idx + 2];
 
                 // Robust Green Keyer: Green must be significantly dominant
-                // G > R + threshold AND G > B + threshold
                 const dominance = 40;
                 const isGreen = (mg > mr + dominance) && (mg > mb + dominance);
 
@@ -293,25 +411,24 @@ Deno.serve(async (req: Request) => {
               const finalBuffer = PNG.sync.write(rawPng);
               finalImageBase64 = finalBuffer.toString('base64');
               isTransparent = true;
-              console.log(`Mask applied. ${greenPixelCount} pixels removed.`);
+              console.log(`[generate-character] Mask applied. ${greenPixelCount} pixels removed.`);
             } else {
-              console.warn("No green pixels found in mask. Background removal failed.");
+              console.warn('[generate-character] No green pixels found in mask. Background removal failed.');
             }
 
           } else {
-            console.warn("Failed to generate green screen mask. Using original.");
+            console.warn('[generate-character] Failed to generate green screen mask. Using original.');
           }
 
         } catch (err) {
-          console.error("Background removal failed:", err);
+          console.error('[generate-character] Background removal failed:', err);
           finalImageBase64 = rawBase64;
         }
       } else {
-        console.log("Skipping background removal (transparent=false)");
-        finalImageBase64 = rawBase64;
+        console.log('[generate-character] Skipping background removal (transparent=false)');
       }
 
-      // 7. Save Final Image
+      // 9. Save Final Image
       const finalImageBuffer = Uint8Array.from(atob(finalImageBase64), c => c.charCodeAt(0));
       await supabase.storage
         .from('generations')
@@ -323,7 +440,7 @@ Deno.serve(async (req: Request) => {
 
       const imageUrl = publicUrlData.publicUrl;
 
-      // 8. Store in Database with config hash
+      // 10. Store in Database with config hash
       const configHash = await hashConfig(config);
       await supabase.from('generations').insert({
         user_id: userId,
@@ -334,18 +451,26 @@ Deno.serve(async (req: Request) => {
         cost_in_credits: COST_PER_GENERATION
       });
 
-      return new Response(JSON.stringify({ image: imageUrl, cached: false, transparent: isTransparent }), {
+      console.log('[generate-character] Generation complete. Image URL:', imageUrl);
+
+      return new Response(JSON.stringify({ 
+        image: imageUrl, 
+        cached: false, 
+        transparent: isTransparent 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
 
     } catch (genError: any) {
       // Refund Credits on Failure
-      console.error("Generation Failed, Refunding:", genError);
-      await supabase.rpc('deduct_credits', {
-        p_user_id: userId,
-        p_amount: -COST_PER_GENERATION, // Negative amount adds credits
-        p_ref_id: 'refund_' + Date.now()
-      });
+      console.error('[generate-character] Generation Failed, Refunding:', genError);
+      if (userId) {
+        await supabase.rpc('deduct_credits', {
+          p_user_id: userId,
+          p_amount: -COST_PER_GENERATION, // Negative amount adds credits
+          p_ref_id: 'refund_' + Date.now()
+        });
+      }
 
       // Handle Specific Google AI Errors
       if (genError.message?.includes('billed users') || genError.status === 400) {
@@ -358,9 +483,13 @@ Deno.serve(async (req: Request) => {
     }
 
   } catch (error: any) {
-    console.error("Edge Function Error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    console.error('[generate-character] Edge Function Error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || "Internal Server Error" 
+    }), {
+      status: error.message?.includes('authentication') ? 401 : 
+              error.message?.includes('credits') ? 402 : 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

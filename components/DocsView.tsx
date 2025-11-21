@@ -3,7 +3,8 @@ import { Copy, Check, Terminal, Code, Globe, ChevronUp, ChevronDown, Zap, Settin
 import { HAIR_STYLES, CLOTHING_ITEMS, ACCESSORIES, SKIN_TONES, HAIR_COLORS, CLOTHING_COLORS, EYE_COLORS } from '../constants';
 
 export const DocsView: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'react' | 'react-native' | 'curl'>('react');
+    const [activeTab, setActiveTab] = useState<'js' | 'curl'>('js');
+    const [activeFramework, setActiveFramework] = useState<'react' | 'react-native'>('react-native');
     const [copied, setCopied] = useState<string | null>(null);
 
     const handleCopy = (text: string, id: string) => {
@@ -133,16 +134,7 @@ curl -X POST https://api.characterforge.com/v1/generate \\
     "eyeColor": "green",
     "accessories": ["hat"],
     "transparent": true
-  }'
-
-# Response:
-# {
-#   "url": "https://api.characterforge.com/assets/...",
-#   "id": "gen_123..."
-# }
-
-# Recommendation: Download and store the image
-# curl -o character.png <url_from_response>`;
+  }'`;
 
     // Import constants (assuming they are available, if not we'll hardcode for now but ideally import)
     // Since we can't easily import in this replace block without seeing imports, I'll define the data structure here
@@ -389,15 +381,30 @@ console.log(character.url); // https://api.characterforge.com/v1/assets/...`}
                     <Code size={24} className="text-brand-500" />
                     Integration Examples
                 </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* React Native Example */}
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4">React Native</h3>
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="border-b border-slate-200 flex">
+                        <button
+                            onClick={() => setActiveFramework('react-native')}
+                            className={`px-6 py-4 text-sm font-medium transition-colors ${activeFramework === 'react-native' ? 'text-brand-600 border-b-2 border-brand-600 bg-brand-50/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}
+                        >
+                            React Native
+                        </button>
+                        <button
+                            onClick={() => setActiveFramework('react')}
+                            className={`px-6 py-4 text-sm font-medium transition-colors ${activeFramework === 'react' ? 'text-brand-600 border-b-2 border-brand-600 bg-brand-50/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}
+                        >
+                            React
+                        </button>
+                    </div>
+                    <div className="p-6 bg-slate-50">
                         <p className="text-sm text-slate-600 mb-4">
-                            Use standard React hooks to manage state and display the generated image.
+                            {activeFramework === 'react-native' 
+                                ? 'Use standard React hooks to manage state and display the generated image.'
+                                : 'Similar implementation for web using standard HTML elements.'}
                         </p>
-                        <CodeBlock
-                            code={`import React, { useState } from 'react';
+                        {activeFramework === 'react-native' ? (
+                            <CodeBlock
+                                code={`import React, { useState } from 'react';
 import { View, Image, Button } from 'react-native';
 import { CharacterForge } from 'character-forge';
 
@@ -426,19 +433,12 @@ export default function AvatarCreator() {
     </View>
   );
 }`}
-                            language="tsx"
-                            id="rn-example"
-                        />
-                    </div>
-
-                    {/* React Example */}
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4">React</h3>
-                        <p className="text-sm text-slate-600 mb-4">
-                            Similar implementation for web using standard HTML elements.
-                        </p>
-                        <CodeBlock
-                            code={`import React, { useState } from 'react';
+                                language="tsx"
+                                id="rn-example"
+                            />
+                        ) : (
+                            <CodeBlock
+                                code={`import React, { useState } from 'react';
 import { CharacterForge } from 'character-forge';
 
 const client = new CharacterForge('API_KEY');
@@ -463,9 +463,10 @@ export function AvatarCreator() {
     </div>
   );
 }`}
-                            language="tsx"
-                            id="react-example"
-                        />
+                                language="tsx"
+                                id="react-example"
+                            />
+                        )}
                     </div>
                 </div>
             </section>
@@ -494,6 +495,8 @@ export function AvatarCreator() {
                 </div>
             </section>
 
+            {/* Pricing & Credits - Moved to Billing & Usage section */}
+            
             {/* Best Practices & Storage */}
             <section className="mb-16">
                 <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">

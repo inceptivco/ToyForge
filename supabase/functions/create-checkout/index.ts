@@ -13,54 +13,113 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+    console.log(`[create-checkout] ${req.method} request received`);
+    
     if (req.method === 'OPTIONS') {
+        console.log('[create-checkout] OPTIONS request, returning CORS headers');
         return new Response('ok', { headers: corsHeaders });
     }
 
     try {
+        console.log('[create-checkout] Starting checkout session creation');
+        
         // 1. Authenticate User
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         const authHeader = req.headers.get('Authorization');
-        if (!authHeader) throw new Error('Missing Authorization header');
+        if (!authHeader) {
+            console.error('[create-checkout] Missing Authorization header');
+            throw new Error('Missing Authorization header');
+        }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
+            console.error('[create-checkout] Authentication failed:', error?.message || 'No user');
             return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
         }
 
+        console.log(`[create-checkout] User authenticated: ${user.id}`);
+
         // 2. Parse Request
-        const { packId, type = 'app' } = await req.json();
+        const body = await req.json();
+        console.log('[create-checkout] Request body:', JSON.stringify(body));
+        const { amount, packId, type = 'app' } = body;
 
         let priceAmount = 0;
         let credits = 0;
         let productName = '';
 
         // Pricing Logic
-        // App Credits: Starter $5 (50), Pro $15 (200)
-        // API Credits: Starter $5 (50), Pro $20 (200) -> $0.10/call
-
-        if (packId === 'starter') {
-            priceAmount = type === 'api' ? 649 : 749; // API: $6.49, App: $7.49
-            credits = 50;
+        
+        // 1. Custom Amount (API or flexible App purchase)
+        if (amount) {
+            const numAmount = parseFloat(amount);
+            if (numAmount < 5) {
+                throw new Error('Minimum purchase amount is $5.00');
+            }
+            
+            // Stripe expects amount in cents
+            priceAmount = Math.round(numAmount * 100);
+            
+            // Calculate credits based on rate
+            const rate = type === 'api' ? 0.10 : 0.15;
+            credits = Math.floor(numAmount / rate);
+            
             productName = type === 'api'
-                ? 'CharacterForge API Starter (50 Calls)'
-                : 'CharacterForge Starter Pack (50 Credits)';
-        } else if (packId === 'pro') {
-            priceAmount = type === 'api' ? 2000 : 2500; // API: $20.00, App: $25.00
-            credits = 200;
-            productName = type === 'api'
-                ? 'CharacterForge API Pro (200 Calls)'
-                : 'CharacterForge Pro Pack (200 Credits)';
+                ? `CharacterForge API Credits ($${numAmount.toFixed(2)})`
+                : `CharacterForge App Credits ($${numAmount.toFixed(2)})`;
+        
+        // 2. Predefined Packs (Standard App purchase)
+        } else if (packId) {
+            if (packId === 'starter') {
+                // App Starter: $7.50 for 50 credits ($0.15/gen)
+                // API Starter (if used): $5.00 for 50 credits ($0.10/gen)
+                priceAmount = type === 'api' ? 500 : 750; 
+                credits = 50;
+                productName = type === 'api'
+                    ? 'CharacterForge API Starter (50 Calls)'
+                    : 'CharacterForge Starter Pack (50 Credits)';
+            } else if (packId === 'pro') {
+                // Pro: $20.00 for 200 credits ($0.10/gen)
+                priceAmount = 2000; 
+                credits = 200;
+                productName = type === 'api'
+                    ? 'CharacterForge API Pro (200 Calls)'
+                    : 'CharacterForge Pro Pack (200 Credits)';
+            } else {
+                throw new Error('Invalid pack ID');
+            }
         } else {
-            throw new Error('Invalid pack ID');
+             throw new Error('Either amount or packId is required');
         }
 
         // 3. Create Checkout Session
+        // Get origin from Referer header or Origin header, fallback to a default
+        const referer = req.headers.get('referer') || req.headers.get('origin') || '';
+        let baseUrl = referer;
+        
+        // If referer includes a path, extract just the origin
+        if (referer) {
+            try {
+                const url = new URL(referer);
+                baseUrl = `${url.protocol}//${url.host}`;
+            } catch {
+                // If URL parsing fails, use as-is
+                baseUrl = referer.replace(/\/[^/]*$/, ''); // Remove path if present
+            }
+        }
+        
+        // Ensure we have a valid base URL
+        if (!baseUrl || baseUrl === '') {
+            baseUrl = 'http://localhost:3000'; // Fallback for local development
+        }
+
+        console.log(`[create-checkout] Creating Stripe session: ${credits} credits, $${(priceAmount / 100).toFixed(2)}, type: ${type}`);
+        
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [
@@ -79,11 +138,11 @@ serve(async (req) => {
             ],
             mode: 'payment',
             success_url: type === 'api'
-                ? `${req.headers.get('origin')}/developer/billing?success=true`
-                : `${req.headers.get('origin')}/app?success=true`,
+                ? `${baseUrl}/developer/billing?success=true`
+                : `${baseUrl}/app?success=true`,
             cancel_url: type === 'api'
-                ? `${req.headers.get('origin')}/developer/billing?canceled=true`
-                : `${req.headers.get('origin')}/app?canceled=true`,
+                ? `${baseUrl}/developer/billing?canceled=true`
+                : `${baseUrl}/app?canceled=true`,
             client_reference_id: user.id,
             metadata: {
                 credits: credits.toString(),
@@ -92,12 +151,15 @@ serve(async (req) => {
             },
         });
 
+        console.log(`[create-checkout] Stripe session created: ${session.id}, URL: ${session.url}`);
+
         return new Response(JSON.stringify({ url: session.url }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
 
     } catch (error: any) {
-        console.error(error);
+        console.error('[create-checkout] Error:', error);
+        console.error('[create-checkout] Error stack:', error.stack);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
