@@ -34,25 +34,30 @@ serve(async (req) => {
         }
 
         // 2. Parse Request
-        const { packId } = await req.json();
+        const { packId, type = 'app' } = await req.json();
 
         let priceAmount = 0;
         let credits = 0;
         let productName = '';
 
-        switch (packId) {
-            case 'starter':
-                priceAmount = 500; // $5.00
-                credits = 50;
-                productName = 'CharacterForge Starter Pack (50 Credits)';
-                break;
-            case 'pro':
-                priceAmount = 1500; // $15.00
-                credits = 200;
-                productName = 'CharacterForge Pro Pack (200 Credits)';
-                break;
-            default:
-                throw new Error('Invalid pack ID');
+        // Pricing Logic
+        // App Credits: Starter $5 (50), Pro $15 (200)
+        // API Credits: Starter $5 (50), Pro $20 (200) -> $0.10/call
+
+        if (packId === 'starter') {
+            priceAmount = type === 'api' ? 649 : 749; // API: $6.49, App: $7.49
+            credits = 50;
+            productName = type === 'api'
+                ? 'CharacterForge API Starter (50 Calls)'
+                : 'CharacterForge Starter Pack (50 Credits)';
+        } else if (packId === 'pro') {
+            priceAmount = type === 'api' ? 2000 : 2500; // API: $20.00, App: $25.00
+            credits = 200;
+            productName = type === 'api'
+                ? 'CharacterForge API Pro (200 Calls)'
+                : 'CharacterForge Pro Pack (200 Credits)';
+        } else {
+            throw new Error('Invalid pack ID');
         }
 
         // 3. Create Checkout Session
@@ -64,8 +69,8 @@ serve(async (req) => {
                         currency: 'usd',
                         product_data: {
                             name: productName,
-                            description: `${credits} image generations`,
-                            images: ['https://characterforge.app/assets/logo.png'], // Placeholder
+                            description: `${credits} ${type === 'api' ? 'API calls' : 'image generations'}`,
+                            images: ['https://characterforge.app/assets/logo.png'],
                         },
                         unit_amount: priceAmount,
                     },
@@ -73,12 +78,17 @@ serve(async (req) => {
                 },
             ],
             mode: 'payment',
-            success_url: `${req.headers.get('origin')}/?success=true`,
-            cancel_url: `${req.headers.get('origin')}/?canceled=true`,
+            success_url: type === 'api'
+                ? `${req.headers.get('origin')}/developer/billing?success=true`
+                : `${req.headers.get('origin')}/app?success=true`,
+            cancel_url: type === 'api'
+                ? `${req.headers.get('origin')}/developer/billing?canceled=true`
+                : `${req.headers.get('origin')}/app?canceled=true`,
             client_reference_id: user.id,
             metadata: {
                 credits: credits.toString(),
                 user_id: user.id,
+                credit_type: type, // Important for webhook to know which balance to update
             },
         });
 

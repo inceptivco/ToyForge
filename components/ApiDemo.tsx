@@ -5,7 +5,7 @@ export const ApiDemo: React.FC = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [response, setResponse] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
-    
+
     // Fixed values for canned demo
     const gender = 'female';
     const skinTone = 'light';
@@ -20,9 +20,9 @@ export const ApiDemo: React.FC = () => {
         "credits_remaining": 42,
         "config": {
             gender,
-            skinToneId: skinTone,
-            hairStyleId: hairStyle,
-            clothingColorId: clothingColor
+            skinTone: skinTone,
+            hairStyle: hairStyle,
+            clothingColor: clothingColor
         }
     };
 
@@ -31,9 +31,7 @@ export const ApiDemo: React.FC = () => {
   -H "Content-Type: application/json" \\
   -d '{
     "gender": "${gender}",
-    "skinToneId": "${skinTone}",
-    "hairStyleId": "${hairStyle}",
-    "clothingColorId": "${clothingColor}"
+    "clothingColor": "${clothingColor}"
   }'`;
 
     const handleRun = () => {
@@ -84,31 +82,31 @@ export const ApiDemo: React.FC = () => {
                             {'  '}-H <span className="text-orange-400">"Authorization: Bearer KEY"</span> {'\\'}<br />
                             {'  '}-H <span className="text-orange-400">"Content-Type: application/json"</span> {'\\'}<br />
                             {'  '}-d <span className="text-yellow-300">{'\''}{'{'}<br />
-    {'"gender"'}:
+                                {'"gender"'}:
                             </span>
                             <span className="text-yellow-300 underline font-bold">
                                 "{gender}"
                             </span>
                             <span className="text-yellow-300">,<br />
-    {'"skinToneId"'}:
+                                {'"accessories"'}:
                             </span>
-                            <span className="text-yellow-300 underline font-bold">
-                                "{skinTone}"
+                            <span className="text-yellow-300 font-bold">
+                                ["none"]
                             </span>
                             <span className="text-yellow-300">,<br />
-    {'"hairStyleId"'}:
+                                {'"hairStyle"'}:
                             </span>
                             <span className="text-yellow-300 underline font-bold">
                                 "{hairStyle}"
                             </span>
                             <span className="text-yellow-300">,<br />
-    {'"clothingColorId"'}:
+                                {'"clothingColor"'}:
                             </span>
                             <span className="text-yellow-300 underline font-bold">
                                 "{clothingColor}"
                             </span>
                             <span className="text-yellow-300"><br />
-  {'}'}{'\''}</span>
+                                {'}'}{'\''}</span>
                         </pre>
                     </div>
                     <button

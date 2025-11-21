@@ -4,7 +4,12 @@ import { ApiDemo } from './ApiDemo';
 import { ComponentDemo } from './ComponentDemo';
 import { Link } from 'react-router-dom';
 
-export const LandingPage: React.FC = () => {
+interface LandingPageProps {
+    user?: any;
+    onSignInClick?: () => void;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick }) => {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-100 selection:text-brand-900">
             {/* Navigation */}
@@ -17,17 +22,31 @@ export const LandingPage: React.FC = () => {
                         <span className="text-lg font-bold tracking-tight text-slate-900">CharacterForge</span>
                     </div>
                     <div className="flex items-center gap-8">
-                        <div className="hidden md:flex items-center gap-6">
-                            <a href="#features" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Features</a>
-                            <a href="#react" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">React Component</a>
-                            <a href="#api" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">API</a>
-                        </div>
-                        <Link
-                            to="/app"
-                            className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
-                        >
-                            Launch App
-                        </Link>
+                        {user ? (
+                            <>
+                                <div className="hidden md:flex items-center gap-6">
+                                    <Link to="/developer" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">API & SDK</Link>
+                                </div>
+                                <Link
+                                    to="/app"
+                                    className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
+                                >
+                                    Launch App
+                                </Link>
+                            </>
+                        ) : (
+                            <>
+                                <div className="hidden md:flex items-center gap-6">
+                                    <Link to="/developer/docs" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Documentation</Link>
+                                </div>
+                                <button
+                                    onClick={onSignInClick}
+                                    className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                                >
+                                    Sign In
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -61,12 +80,12 @@ export const LandingPage: React.FC = () => {
                             >
                                 Start Creating <ArrowRight size={20} />
                             </Link>
-                            <a
-                                href="#react"
+                            <Link
+                                to="/developer"
                                 className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-lg transition-colors border-2 border-slate-200 hover:border-slate-300 shadow-sm"
                             >
                                 View Documentation
-                            </a>
+                            </Link>
                         </div>
                     </div>
 

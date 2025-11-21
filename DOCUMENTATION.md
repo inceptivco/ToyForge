@@ -31,11 +31,11 @@ export const MyCharacter = () => {
       apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'female',
-        skinToneId: 'light',
-        hairStyleId: 'bob',
-        hairColorId: 'auburn',
-        clothingColorId: 'blue',
-        eyeColorId: 'hazel'
+        skinTone: 'light',
+        hairStyle: 'bob',
+        hairColor: 'auburn',
+        clothingColor: 'blue',
+        eyeColor: 'hazel'
       }}
       cache={true}
       transparent={true}
@@ -60,12 +60,12 @@ export const MyCharacter = () => {
 ```typescript
 interface CharacterConfig {
   gender?: 'male' | 'female';
-  skinToneId?: string;
-  hairStyleId?: string;
-  hairColorId?: string;
-  clothingColorId?: string;
-  eyeColorId?: string;
-  accessoryId?: string;
+  skinTone?: string;
+  hairStyle?: string;
+  hairColor?: string;
+  clothingColor?: string;
+  eyeColor?: string;
+  accessories?: string[];
 }
 ```
 
@@ -90,11 +90,11 @@ export const MobileCharacter = () => {
       apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'male',
-        skinToneId: 'fair',
-        hairStyleId: 'short',
-        hairColorId: 'dark_brown',
-        clothingColorId: 'purple',
-        eyeColorId: 'brown'
+        skinTone: 'fair',
+        hairStyle: 'short',
+        hairColor: 'dark_brown',
+        clothingColor: 'purple',
+        eyeColor: 'brown'
       }}
       cache={true}
       transparent={true}
@@ -147,12 +147,12 @@ Content-Type: application/json
 ```json
 {
   "gender": "female",
-  "skinToneId": "light",
-  "hairStyleId": "bob",
-  "hairColorId": "auburn",
-  "clothingColorId": "blue",
-  "eyeColorId": "hazel",
-  "accessoryId": "none"
+  "skinTone": "light",
+  "hairStyle": "bob",
+  "hairColor": "auburn",
+  "clothingColor": "blue",
+  "eyeColor": "hazel",
+  "accessory": "none"
 }
 ```
 
@@ -173,9 +173,9 @@ curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-char
   -H "Content-Type: application/json" \
   -d '{
     "gender": "female",
-    "skinToneId": "light",
-    "hairStyleId": "bob",
-    "clothingColorId": "blue"
+    "skinTone": "light",
+    "hairStyle": "bob",
+    "clothingColor": "blue"
   }'
 ```
 
@@ -229,6 +229,19 @@ curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-char
 - `platinum`
 - `grey`
 
+### Clothing Items
+
+- `tshirt` - T-Shirt
+- `hoodie` - Hoodie
+- `sweater` - Sweater
+- `jacket` - Bomber Jacket
+- `tank` - Tank Top (female)
+- `dress` - Sundress (female)
+- `blouse` - Blouse (female)
+- `polo` - Polo (male)
+- `buttonup` - Button Up (male)
+- `henley` - Henley (male)
+
 ### Clothing Colors
 
 - `red`
@@ -273,11 +286,11 @@ import { CharacterForge } from '@characterforge/react';
 export const CharacterCreator = () => {
   const [config, setConfig] = useState({
     gender: 'female',
-    skinToneId: 'light',
-    hairStyleId: 'bob',
-    hairColorId: 'auburn',
-    clothingColorId: 'blue',
-    eyeColorId: 'hazel'
+    skinTone: 'light',
+    hairStyle: 'bob',
+    hairColor: 'auburn',
+    clothingColor: 'blue',
+    eyeColor: 'hazel'
   });
 
   return (
@@ -308,11 +321,11 @@ export const StyledCharacter = () => {
       apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'male',
-        skinToneId: 'fair',
-        hairStyleId: 'short',
-        hairColorId: 'dark_brown',
-        clothingColorId: 'purple',
-        eyeColorId: 'brown'
+        skinTone: 'fair',
+        hairStyle: 'short',
+        hairColor: 'dark_brown',
+        clothingColor: 'purple',
+        eyeColor: 'brown'
       }}
       style={{
         width: 300,
@@ -352,9 +365,9 @@ async function generateCharacter(config) {
 // Usage
 const imageUrl = await generateCharacter({
   gender: 'female',
-  skinToneId: 'light',
-  hairStyleId: 'bob',
-  clothingColorId: 'blue'
+  skinTone: 'light',
+  hairStyle: 'bob',
+  clothingColor: 'blue'
 });
 ```
 
@@ -379,9 +392,9 @@ def generate_character(config, api_key):
 result = generate_character(
     {
         "gender": "female",
-        "skinToneId": "light",
-        "hairStyleId": "bob",
-        "clothingColorId": "blue"
+        "skinTone": "light",
+        "hairStyle": "bob",
+        "clothingColor": "blue"
     },
     "YOUR_API_KEY"
 )

@@ -108,13 +108,14 @@ export const ACCESSORIES: AssetOption[] = [
 
 export const DEFAULT_CONFIG: CharacterConfig = {
   gender: 'female',
-  skinToneId: 'medium',
-  hairStyleId: 'bob',
-  hairColorId: 'brown',
-  clothingId: 'tshirt',
-  clothingColorId: 'pink',
-  accessoryId: 'none',
-  eyeColorId: 'dark',
+  skinTone: 'light',
+  hairStyle: 'bob',
+  hairColor: 'blonde',
+  clothing: 'hoodie',
+  clothingColor: 'pink',
+  eyeColor: 'blue',
+  accessories: ['none'],
   transparent: true,
-  cache: false,
+  cache: false
 };
+

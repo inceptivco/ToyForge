@@ -7,32 +7,30 @@ import { Code, Eye, Copy, Check, Smartphone, ArrowRight, RefreshCw } from 'lucid
 const CHARACTER_CONFIGS = [
     {
         gender: 'male' as const,
-        skinToneId: 'fair',
-        hairStyleId: 'short',
-        hairColorId: 'dark_brown',
-        clothingColorId: 'purple',
-        eyeColorId: 'brown',
-        accessoryId: 'sunglasses',
+        skinTone: 'fair',
+        hairStyle: 'short',
+        hairColor: 'dark_brown',
+        clothingColor: 'purple',
+        eyeColor: 'brown',
+        accessories: ['sunglasses'],
         imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'
     },
     {
         gender: 'female' as const,
-        skinToneId: 'olive',
-        hairStyleId: 'ponytail',
-        hairColorId: 'auburn',
-        clothingColorId: 'teal',
-        eyeColorId: 'hazel',
-        accessoryId: 'none',
+        hairColor: 'auburn',
+        clothingColor: 'teal',
+        eyeColor: 'hazel',
+        accessories: ['none'],
         imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f_original.png'
     },
     {
         gender: 'male' as const,
-        skinToneId: 'brown',
-        hairStyleId: 'fade',
-        hairColorId: 'black',
-        clothingColorId: 'green',
-        eyeColorId: 'dark',
-        accessoryId: 'cap',
+        skinTone: 'brown',
+        hairStyle: 'fade',
+        hairColor: 'black',
+        clothingColor: 'green',
+        eyeColor: 'dark',
+        accessories: ['cap'],
         imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png'
     }
 ];
@@ -50,7 +48,7 @@ export const ComponentDemo: React.FC = () => {
 
     // Removed IntersectionObserver to prevent auto-loading on scroll
     // The component will start with the default character and only load when manually refreshed
-    
+
     const handleRefresh = () => {
         setIsRefreshing(true);
         setTriggerLoading(false);
@@ -82,18 +80,18 @@ export const ComponentDemo: React.FC = () => {
         const lines = code.split('\n');
         const keywords = ['import', 'export', 'const', 'return', 'from', 'true', 'false'];
         const components = ['CharacterForge', 'CharacterForgeView', 'MobileCharacter', 'MyCharacter'];
-        
+
         return (
             <>
                 {lines.map((line, lineIdx) => {
                     // Simple regex-based highlighting
                     const parts: Array<{ text: string; className: string }> = [];
                     let lastIndex = 0;
-                    
+
                     // Match strings (single or double quotes)
                     const stringRegex = /(['"`])(?:(?=(\\?))\2.)*?\1/g;
                     let match;
-                    
+
                     while ((match = stringRegex.exec(line)) !== null) {
                         // Add text before string
                         if (match.index > lastIndex) {
@@ -104,18 +102,18 @@ export const ComponentDemo: React.FC = () => {
                         parts.push({ text: match[0], className: 'text-green-400' });
                         lastIndex = match.index + match[0].length;
                     }
-                    
+
                     // Add remaining text
                     if (lastIndex < line.length) {
                         const remaining = line.substring(lastIndex);
                         parts.push(...highlightNonStrings(remaining, keywords, components));
                     }
-                    
+
                     // If no strings found, highlight the whole line
                     if (parts.length === 0) {
                         parts.push(...highlightNonStrings(line, keywords, components));
                     }
-                    
+
                     return (
                         <span key={lineIdx} className="block">
                             {parts.map((part, partIdx) => (
@@ -130,18 +128,18 @@ export const ComponentDemo: React.FC = () => {
             </>
         );
     };
-    
+
     const highlightNonStrings = (text: string, keywords: string[], components: string[]): Array<{ text: string; className: string }> => {
         const parts: Array<{ text: string; className: string }> = [];
         const words = text.split(/(\s+|[{}(),;:=<>[\]/])/);
-        
+
         words.forEach(word => {
             const trimmed = word.trim();
             if (!trimmed) {
                 parts.push({ text: word, className: 'text-slate-300' });
                 return;
             }
-            
+
             if (keywords.includes(trimmed)) {
                 parts.push({ text: word, className: 'text-purple-400' });
             } else if (components.includes(trimmed) || /^[A-Z][a-zA-Z]*$/.test(trimmed)) {
@@ -154,18 +152,18 @@ export const ComponentDemo: React.FC = () => {
                 parts.push({ text: word, className: 'text-slate-300' });
             }
         });
-        
+
         return parts;
     };
 
     const getSnippet = () => {
         const configString = `{
     gender: '${currentConfig.gender}',
-    skinToneId: '${currentConfig.skinToneId}',
-    hairStyleId: '${currentConfig.hairStyleId}',
-    hairColorId: '${currentConfig.hairColorId}',
-    clothingColorId: '${currentConfig.clothingColorId}',
-    eyeColorId: '${currentConfig.eyeColorId}'${currentConfig.accessoryId !== 'none' ? `,\n    accessoryId: '${currentConfig.accessoryId}'` : ''}
+    skinTone: '${currentConfig.skinTone || 'fair'}',
+    hairStyle: '${currentConfig.hairStyle || 'short'}',
+    hairColor: '${currentConfig.hairColor || 'brown'}',
+    clothingColor: '${currentConfig.clothingColor || 'blue'}',
+    eyeColor: '${currentConfig.eyeColor || 'dark'}'${currentConfig.accessory && currentConfig.accessory !== 'none' ? `,\n    accessory: '${currentConfig.accessory}'` : ''}
   }`;
 
         if (activeTab === 'react-native') {

@@ -1,6 +1,6 @@
-
 import { CharacterConfig } from "../types";
 import { supabase } from "./supabase";
+import { characterForgeClient } from "./sdk/client";
 
 // --- Main Pipeline ---
 
@@ -17,28 +17,13 @@ export const generateCharacterPipeline = async (
       throw new Error("You must be logged in to generate characters.");
     }
 
-    onStatusUpdate("Calling AI Cloud...");
+    // Delegate to the SDK Client
+    // The client handles caching, API calls, and status updates related to those actions
+    const imageUrl = await characterForgeClient.generate(config, onStatusUpdate);
 
-    const { data, error } = await supabase.functions.invoke('generate-character', {
-      body: config,
-    });
+    onStatusUpdate("Generation Complete!");
 
-    if (error) {
-      console.error("Function Error:", error);
-      throw new Error(error.message || "Failed to call generation service");
-    }
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    if (data.cached) {
-      onStatusUpdate("Retrieved from Cache!");
-    } else {
-      onStatusUpdate("Generation Complete!");
-    }
-
-    return data.image;
+    return imageUrl;
 
   } catch (error: any) {
     console.error("Pipeline Error:", error);

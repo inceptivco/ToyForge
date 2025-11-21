@@ -19,6 +19,7 @@ interface ConfigPanelProps {
   onGenerate: () => void;
   onRandomize: () => void;
   isGenerating: boolean;
+  hideCacheControl?: boolean;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -26,7 +27,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onChange,
   onGenerate,
   onRandomize,
-  isGenerating
+  isGenerating,
+  hideCacheControl = false
 }) => {
 
   // Filter assets based on gender
@@ -40,7 +42,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     [config.gender]
   );
 
-  const handleChange = (key: keyof CharacterConfig, value: string) => {
+  const handleChange = (key: keyof CharacterConfig, value: any) => {
     onChange({ ...config, [key]: value });
   };
 
@@ -49,14 +51,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const validHair = HAIR_STYLES.filter(h => !h.gender || h.gender === newGender);
     const validClothes = CLOTHING_ITEMS.filter(c => !c.gender || c.gender === newGender);
 
-    const newHairId = validHair.find(h => h.id === config.hairStyleId) ? config.hairStyleId : validHair[0].id;
-    const newClothingId = validClothes.find(c => c.id === config.clothingId) ? config.clothingId : validClothes[0].id;
+    const newHair = validHair.find(h => h.id === config.hairStyle) ? config.hairStyle : validHair[0].id;
+    const newClothing = validClothes.find(c => c.id === config.clothing) ? config.clothing : validClothes[0].id;
 
     onChange({
       ...config,
       gender: newGender,
-      hairStyleId: newHairId,
-      clothingId: newClothingId
+      hairStyle: newHair,
+      clothing: newClothing
     });
   };
 
@@ -122,11 +124,17 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10">
         <h2 className="text-base font-bold text-slate-800">Configurator</h2>
-        {/* The buttons previously here are moved to the bottom action bar */}
+        <button
+          onClick={onRandomize}
+          className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+          title="Randomize Character"
+        >
+          <Shuffle size={18} />
+        </button>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+      <div className="flex-1 p-5 space-y-6 overflow-y-auto">
 
         {/* Identity */}
         <section>
@@ -147,11 +155,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
           <div>
             <label className="text-xs text-slate-400 font-medium mb-2 block">Skin Tone</label>
-            <ColorGrid options={SKIN_TONES} selected={config.skinToneId} onSelect={(v) => handleChange('skinToneId', v)} />
+            <ColorGrid options={SKIN_TONES} selected={config.skinTone} onSelect={(v) => handleChange('skinTone', v)} />
           </div>
           <div>
             <label className="text-xs text-slate-400 font-medium mb-2 block">Eye Color</label>
-            <ColorGrid options={EYE_COLORS} selected={config.eyeColorId} onSelect={(v) => handleChange('eyeColorId', v)} />
+            <ColorGrid options={EYE_COLORS} selected={config.eyeColor} onSelect={(v) => handleChange('eyeColor', v)} />
           </div>
         </section>
 
@@ -160,8 +168,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         {/* Hair */}
         <section>
           <SectionTitle icon={Sparkles}>Hair</SectionTitle>
-          <ColorGrid options={HAIR_COLORS} selected={config.hairColorId} onSelect={(v) => handleChange('hairColorId', v)} />
-          <AssetGrid options={availableHairStyles} selected={config.hairStyleId} onSelect={(v) => handleChange('hairStyleId', v)} />
+          <ColorGrid options={HAIR_COLORS} selected={config.hairColor} onSelect={(v) => handleChange('hairColor', v)} />
+          <AssetGrid options={availableHairStyles} selected={config.hairStyle} onSelect={(v) => handleChange('hairStyle', v)} />
         </section>
 
         <hr className="border-slate-100" />
@@ -169,8 +177,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         {/* Outfit */}
         <section>
           <SectionTitle icon={Shirt}>Wardrobe</SectionTitle>
-          <ColorGrid options={CLOTHING_COLORS} selected={config.clothingColorId} onSelect={(v) => handleChange('clothingColorId', v)} />
-          <AssetGrid options={availableClothing} selected={config.clothingId} onSelect={(v) => handleChange('clothingId', v)} />
+          <ColorGrid options={CLOTHING_COLORS} selected={config.clothingColor} onSelect={(v) => handleChange('clothingColor', v)} />
+          <AssetGrid options={availableClothing} selected={config.clothing} onSelect={(v) => handleChange('clothing', v)} />
         </section>
 
         <hr className="border-slate-100" />
@@ -180,14 +188,43 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <SectionTitle icon={Smile}>Extras</SectionTitle>
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-slate-400 font-medium mb-2 block">Accessory</label>
-              <select
-                value={config.accessoryId}
-                onChange={(e) => handleChange('accessoryId', e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-700"
-              >
-                {ACCESSORIES.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
-              </select>
+              <label className="text-xs text-slate-400 font-medium mb-2 block">Accessories (Select multiple)</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ACCESSORIES.map((opt) => {
+                  const isSelected = config.accessories.includes(opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        let newAccessories = [...config.accessories];
+                        if (opt.id === 'none') {
+                          newAccessories = ['none'];
+                        } else {
+                          // Remove 'none' if selecting something else
+                          newAccessories = newAccessories.filter(a => a !== 'none');
+
+                          if (isSelected) {
+                            newAccessories = newAccessories.filter(a => a !== opt.id);
+                          } else {
+                            newAccessories.push(opt.id);
+                          }
+
+                          // If empty, default to 'none'
+                          if (newAccessories.length === 0) newAccessories = ['none'];
+                        }
+                        // @ts-ignore - Dynamic key access is safe here but TS complains
+                        onChange({ ...config, accessories: newAccessories });
+                      }}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium text-left transition-all border ${isSelected
+                        ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-sm ring-1 ring-brand-500'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300 hover:bg-slate-50'
+                        }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -200,7 +237,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <label className="flex items-center justify-between cursor-pointer group p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
           <div className="flex-1">
             <div className="font-semibold text-slate-800 text-sm">Transparent Background</div>
-            <div className="text-xs text-slate-500 mt-0.5">Remove background (costs more)</div>
+            <div className="text-xs text-slate-500 mt-0.5">Remove background</div>
           </div>
           <div className="relative">
             <input
@@ -213,33 +250,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         </label>
 
-        {/* Cache Toggle */}
-        <label className="flex items-center justify-between cursor-pointer group p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-          <div className="flex-1">
-            <div className="font-semibold text-slate-800 text-sm">Use Cache</div>
-            <div className="text-xs text-slate-500 mt-0.5">Faster if config exists</div>
-          </div>
-          <div className="relative">
-            <input
-              type="checkbox"
-              checked={config.cache === true}
-              onChange={(e) => onChange({ ...config, cache: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
-          </div>
-        </label>
+        {/* Cache Toggle - Removed as requested */}
 
         <button
           onClick={onGenerate}
           disabled={isGenerating}
-          className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 transition-all ${isGenerating
+          className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 transition-all ${isGenerating
             ? 'bg-slate-300 cursor-not-allowed'
-            : 'bg-brand-500 hover:bg-brand-600 hover:scale-[1.02] active:scale-[0.98]'
+            : 'bg-red-500 hover:bg-red-600 hover:scale-[1.02] active:scale-[0.98]'
             }`}
         >
           <Wand2 size={20} className={isGenerating ? "animate-spin" : ""} />
-          {isGenerating ? 'Sculpting Toy...' : 'Generate Character'}
+          {isGenerating ? 'Sculpting Character...' : 'Generate Character'}
         </button>
       </div>
     </div>

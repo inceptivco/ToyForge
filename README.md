@@ -68,9 +68,9 @@ export const MyCharacter = () => {
       apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'female',
-        skinToneId: 'light',
-        hairStyleId: 'bob',
-        clothingColorId: 'blue'
+        skinTone: 'light',
+        hairStyle: 'bob',
+        clothingColor: 'blue'
       }}
     />
   );

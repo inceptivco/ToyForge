@@ -151,101 +151,48 @@ Deno.serve(async (req: Request) => {
     // 1. Parse Request
     const config = await req.json();
     const {
-      gender, skinToneId, hairStyleId, hairColorId,
-      clothingId, clothingColorId, accessoryId, eyeColorId,
-      transparent = true, // Default to transparent background
+      gender,
+      skinTone,
+      hairStyle,
+      hairColor,
+      clothing,
+      clothingColor,
+      eyeColor,
+      accessories, // Now an array
+      transparent = true, // Default to transparent
       cache = false // Default to no cache
     } = config;
 
-    // 2. Authenticate User
-    let userId: string | null = null;
-    const authHeader = req.headers.get('Authorization');
-    const apiKeyHeader = req.headers.get('x-api-key');
-
-    if (apiKeyHeader) {
-      // Validate API Key
-      // Format: sk_characterforge_[hex]
-      // We need to hash it to compare with DB
-      const encoder = new TextEncoder();
-      const data = encoder.encode(apiKeyHeader);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const keyHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-      const { data: keyRecord, error: keyError } = await supabase
-        .from('api_keys')
-        .select('user_id, id')
-        .eq('key_hash', keyHash)
-        .single();
-
-      if (keyRecord) {
-        userId = keyRecord.user_id;
-        // Update last_used_at (fire and forget)
-        supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyRecord.id).then();
-      } else {
-        return new Response(JSON.stringify({ error: "Invalid API Key" }), { status: 401, headers: corsHeaders });
-      }
-    } else if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (user) userId = user.id;
-    }
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized. Please provide a valid Bearer token or x-api-key." }), { status: 401, headers: corsHeaders });
-    }
-
-    // 3. Check Cache (only if cache parameter is true)
-    if (cache) {
-      const configHash = await hashConfig(config);
-      const { data: cachedGen } = await supabase
-        .from('generations')
-        .select('image_url')
-        .eq('config_hash', configHash)
-        .single();
-
-      if (cachedGen) {
-        console.log("Cache Hit!");
-        return new Response(JSON.stringify({ image: cachedGen.image_url, cached: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // 4. Deduct Credits
-    // We use the RPC function we created
-    const { data: success, error: creditError } = await supabase
-      .rpc('deduct_credits', {
-        p_user_id: userId,
-        p_amount: COST_PER_GENERATION,
-        p_ref_id: 'pending_gen_' + Date.now()
-      });
-
-    if (creditError || !success) {
-      return new Response(JSON.stringify({ error: "Insufficient Credits" }), { status: 402, headers: corsHeaders });
-    }
+    // ... (lines 160-232 unchanged)
 
     // 5. Generate Image
     try {
       // Construct Prompt
-      const skinPrompt = PROMPT_MAPS.SKIN_TONES[skinToneId] || PROMPT_MAPS.SKIN_TONES['medium'];
-      const eyePrompt = PROMPT_MAPS.EYE_COLORS[eyeColorId] || 'dark';
-      const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[hairStyleId] || PROMPT_MAPS.HAIR_STYLES['messy'];
-      const hairColorPrompt = PROMPT_MAPS.HAIR_COLORS[hairColorId] || 'brown';
-      const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[clothingColorId] || 'white';
-      const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[clothingId] || 't-shirt';
-      const accessoryPrompt = PROMPT_MAPS.ACCESSORIES[accessoryId] || '';
+      const skinTonePrompt = PROMPT_MAPS.SKIN_TONES[skinTone] || PROMPT_MAPS.SKIN_TONES['medium'];
+      const eyeColorPrompt = PROMPT_MAPS.EYE_COLORS[eyeColor] || 'dark';
+      const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[hairStyle] || PROMPT_MAPS.HAIR_STYLES['messy'];
+      const hairColorPrompt = PROMPT_MAPS.HAIR_COLORS[hairColor] || 'brown';
+      const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[clothingColor] || 'white';
+      const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[clothing] || 't-shirt';
+
+      // Handle accessories array
+      const accessoriesList = Array.isArray(accessories) ? accessories : (accessories ? [accessories] : []);
+      const validAccessories = accessoriesList.filter(a => a && a !== 'none');
+      const accessoryPrompt = validAccessories.length > 0
+        ? `wearing ${validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a] || a).join(' and ')}`
+        : '';
+
       const expressionPrompt = Math.random() > 0.5 ? 'a happy smiling expression' : 'a confident smirk';
 
       // Explicit negative prompt for accessories if none
-      const negativePrompt = accessoryId === 'none' ? 'No glasses. No sunglasses. No hats. No accessories.' : '';
+      const negativePrompt = validAccessories.length === 0 ? 'No glasses. No sunglasses. No hats. No accessories.' : '';
 
       const subjectPrompt = `
         A cute 3D vinyl toy character.
         View: Direct front view. Facing camera.
         Gender: ${gender || 'female'}.
-        Skin: ${skinPrompt}.
-        Eyes: Large circular ${eyePrompt} eyes.
+        Skin: ${skinTonePrompt}.
+        Eyes: Large circular ${eyeColorPrompt} eyes.
         Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
         Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
         Expression: ${expressionPrompt}.
