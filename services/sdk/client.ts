@@ -48,12 +48,15 @@ export class CharacterForgeClient {
             body: characterConfig,
         });
 
-        if (error) {
-            throw new Error(error.message || "Failed to call generation service");
-        }
-
-        if (data.error) {
-            throw new Error(data.error);
+        // Handle errors: Check for error in response data first (edge function returns error in body for non-2xx)
+        // Supabase may set error for non-2xx status codes, but data should still contain the response body
+        if (error || (data && typeof data === 'object' && 'error' in data)) {
+            // Prefer error message from response body (more specific), then fall back to Supabase error message
+            // The edge function returns { error: "..." } in the body for 402 and other error statuses
+            const errorMessage = (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string')
+                ? data.error
+                : (error?.message || "Failed to call generation service");
+            throw new Error(errorMessage);
         }
 
         const imageUrl = data.image;

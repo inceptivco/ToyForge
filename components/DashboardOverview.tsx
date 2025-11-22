@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, FileText, Key, AlertTriangle, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Key, AlertTriangle } from 'lucide-react';
+import { ApiKeyManager } from './ApiKeyManager';
 
 interface DashboardOverviewProps {
     apiCredits: number | null;
     generationCount: number;
     apiKeyCount: number;
     apiKeys: any[];
-    onCreateKey: () => void; // Placeholder for now as the original didn't have implementation in renderContent
+    checkUser: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -15,7 +16,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     generationCount,
     apiKeyCount,
     apiKeys,
-    onCreateKey
+    checkUser
 }) => {
     return (
         <div className="max-w-5xl mx-auto p-8">
@@ -57,10 +58,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                         <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
                             <FileText size={24} />
                         </div>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full">Total</span>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full">API</span>
                     </div>
                     <div className="text-4xl font-bold text-slate-900 mb-1">{generationCount}</div>
-                    <div className="text-sm font-medium text-slate-500">Generations Created</div>
+                    <div className="text-sm font-medium text-slate-500">API Generations</div>
                 </div>
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
@@ -75,48 +76,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </div>
 
             {/* API Keys Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-12">
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-slate-900">API Keys</h2>
-                    <button
-                        onClick={onCreateKey}
-                        className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-                        Create New Key
-                    </button>
-                </div>
-                <div className="p-6">
-                    {apiKeys.length > 0 ? (
-                        <div className="space-y-4">
-                            {apiKeys.map((key) => (
-                                <div key={key.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-white rounded-lg border border-slate-200 text-slate-400">
-                                            <Key size={20} />
-                                        </div>
-                                        <div>
-                                            <div className="font-mono text-sm font-medium text-slate-900">{key.label || 'Unnamed Key'}</div>
-                                            <div className="text-xs text-slate-500 mt-0.5">Created on {new Date(key.created_at).toLocaleDateString()}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <code className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-500">
-                                            {key.key_hash.substring(0, 8)}...
-                                        </code>
-                                        <button className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-slate-500">
-                            <Key size={48} className="mx-auto mb-4 opacity-20" />
-                            <p>No API keys found. Create one to get started.</p>
-                        </div>
-                    )}
-                </div>
+            <div className="mb-12">
+                <ApiKeyManager onKeysChange={checkUser} />
             </div>
         </div>
     );

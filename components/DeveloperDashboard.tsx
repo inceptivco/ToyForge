@@ -60,19 +60,21 @@ export const DeveloperDashboard: React.FC = () => {
                     setApiCredits(profile.api_credits_balance);
                 }
 
-                // Fetch Generation Count
+                // Fetch API Generation Count (only count generations made via API keys, not app usage)
                 const { count: genCount } = await supabase
                     .from('generations')
                     .select('*', { count: 'exact', head: true })
-                    .eq('user_id', user.id);
+                    .eq('user_id', user.id)
+                    .not('api_key_id', 'is', null); // Only count API usage, not app usage
 
                 setGenerationCount(genCount || 0);
 
-                // Fetch API Keys
+                // Fetch API Keys (only active ones - deleted_at is null)
                 const { data: keys, count: keyCount } = await supabase
                     .from('api_keys')
                     .select('*', { count: 'exact' })
-                    .eq('user_id', user.id);
+                    .eq('user_id', user.id)
+                    .is('deleted_at', null); // Only count active keys
 
                 setApiKeys(keys || []);
                 setApiKeyCount(keyCount || 0);

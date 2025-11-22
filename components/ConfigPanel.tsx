@@ -190,40 +190,66 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <div>
               <label className="text-xs text-slate-400 font-medium mb-2 block">Accessories (Select multiple)</label>
               <div className="grid grid-cols-2 gap-2">
-                {ACCESSORIES.map((opt) => {
-                  const isSelected = config.accessories.includes(opt.id);
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        let newAccessories = [...config.accessories];
-                        if (opt.id === 'none') {
-                          newAccessories = ['none'];
-                        } else {
-                          // Remove 'none' if selecting something else
-                          newAccessories = newAccessories.filter(a => a !== 'none');
-
-                          if (isSelected) {
-                            newAccessories = newAccessories.filter(a => a !== opt.id);
+                {(() => {
+                  // Define conflict groups - accessories that can't be selected together
+                  const conflictGroups: { [key: string]: string[] } = {
+                    'glasses': ['sunglasses'],
+                    'sunglasses': ['glasses'],
+                    'cap': ['beanie'],
+                    'beanie': ['cap'],
+                  };
+                  
+                  return ACCESSORIES.map((opt) => {
+                    const isSelected = config.accessories.includes(opt.id);
+                    
+                    // Check if this accessory conflicts with any currently selected accessories
+                    const conflicts = conflictGroups[opt.id] || [];
+                    const hasConflict = conflicts.some(conflictId => 
+                      config.accessories.includes(conflictId)
+                    );
+                    
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => {
+                          let newAccessories = [...config.accessories];
+                          if (opt.id === 'none') {
+                            newAccessories = ['none'];
                           } else {
-                            newAccessories.push(opt.id);
-                          }
+                            // Remove 'none' if selecting something else
+                            newAccessories = newAccessories.filter(a => a !== 'none');
 
-                          // If empty, default to 'none'
-                          if (newAccessories.length === 0) newAccessories = ['none'];
-                        }
-                        // @ts-ignore - Dynamic key access is safe here but TS complains
-                        onChange({ ...config, accessories: newAccessories });
-                      }}
-                      className={`py-2 px-3 rounded-lg text-xs font-medium text-left transition-all border ${isSelected
-                        ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-sm ring-1 ring-brand-500'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300 hover:bg-slate-50'
+                            if (isSelected) {
+                              // Deselecting - just remove it
+                              newAccessories = newAccessories.filter(a => a !== opt.id);
+                            } else {
+                              // Selecting - remove conflicting accessories first
+                              const conflictsToRemove = conflictGroups[opt.id] || [];
+                              newAccessories = newAccessories.filter(a => !conflictsToRemove.includes(a));
+                              newAccessories.push(opt.id);
+                            }
+
+                            // If empty, default to 'none'
+                            if (newAccessories.length === 0) newAccessories = ['none'];
+                          }
+                          // @ts-ignore - Dynamic key access is safe here but TS complains
+                          onChange({ ...config, accessories: newAccessories });
+                        }}
+                        disabled={hasConflict && !isSelected}
+                        className={`py-2 px-3 rounded-lg text-xs font-medium text-left transition-all border ${
+                          isSelected
+                            ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-sm ring-1 ring-brand-500'
+                            : hasConflict
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300 hover:bg-slate-50'
                         }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
+                        title={hasConflict && !isSelected ? `Cannot select ${opt.label} with conflicting accessory` : ''}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>

@@ -52,31 +52,49 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
                 setApiCredits(0);
             }
 
-            // Fetch Usage History (Generations) - includes both app and API generations
+            // Fetch Usage History (Generations) - only API usage, not app usage
             const { data: generations, error: genError } = await supabase
                 .from('generations')
-                .select('created_at, cost_in_credits')
+                .select(`
+                    created_at, 
+                    cost_in_credits, 
+                    api_key_id,
+                    api_keys:api_key_id (
+                        id,
+                        label,
+                        key_hash
+                    )
+                `)
                 .eq('user_id', user.id)
+                .not('api_key_id', 'is', null) // Only show API usage, not app usage
                 .order('created_at', { ascending: false })
-                .limit(100); // Get recent 100 generations
+                .limit(100); // Get recent 100 API generations
             
             if (genError) {
-                console.error('Error fetching generations:', genError);
+                console.error('[BillingView] Error fetching generations:', genError);
             }
 
             if (generations) {
-                // Group by date
+                // Group by date and API key (only API usage now)
                 const grouped = generations.reduce((acc: any, curr: any) => {
                     const date = new Date(curr.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    if (!acc[date]) acc[date] = 0;
-                    acc[date] += (curr.cost_in_credits || 1);
+                    const apiKeyLabel = curr.api_keys?.label || `API Key ${curr.api_key_id.substring(0, 8)}`;
+                    
+                    if (!acc[date]) acc[date] = {};
+                    if (!acc[date][apiKeyLabel]) acc[date][apiKeyLabel] = 0;
+                    acc[date][apiKeyLabel] += (curr.cost_in_credits || 1);
                     return acc;
                 }, {});
 
-                const chartData = Object.keys(grouped).map(date => ({
-                    date,
-                    credits: grouped[date]
-                })).slice(-7); // Last 7 days with activity
+                // Convert to chart data format - sum all API keys per date for the main chart
+                const chartData = Object.keys(grouped).map(date => {
+                    const totalCredits = Object.values(grouped[date] as any).reduce((sum: number, val: any) => sum + val, 0);
+                    return {
+                        date,
+                        credits: totalCredits,
+                        breakdown: grouped[date] // Store breakdown for detailed view if needed
+                    };
+                }).slice(-7); // Last 7 days with activity
 
                 setUsageData(chartData);
             }
@@ -95,21 +113,18 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
         } else {
             setLoading(false);
         }
-    }, [user?.id]); // Only depend on user.id to avoid infinite loops
+    }, [user?.id, fetchData]); // Include fetchData in dependencies
 
     // Refresh data periodically to catch updates (only when user exists)
     useEffect(() => {
         if (!user) return;
         
-        // Initial fetch
-        fetchData();
-        
         const interval = setInterval(() => {
             fetchData();
-        }, 10000); // Refresh every 10 seconds (reduced frequency to avoid infinite loops)
+        }, 30000); // Refresh every 30 seconds (reduced frequency to avoid excessive refreshes)
         
         return () => clearInterval(interval);
-    }, [user?.id]); // Only depend on user.id, not the whole user object or fetchData
+    }, [user?.id, fetchData]); // Include fetchData in dependencies
 
     // Handle success/canceled params from Stripe redirect
     useEffect(() => {
