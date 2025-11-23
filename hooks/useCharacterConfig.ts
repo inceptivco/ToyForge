@@ -30,6 +30,20 @@ import { logger } from '../utils/logger';
 // Types
 // ============================================================================
 
+interface UseCharacterConfigOptions {
+  /**
+   * Initial configuration to use.
+   * If not provided, uses DEFAULT_CONFIG.
+   */
+  initialConfig?: CharacterConfig;
+  /**
+   * Whether to randomize the config on initial mount.
+   * Only applies when no initialConfig is provided.
+   * @default false
+   */
+  randomizeOnMount?: boolean;
+}
+
 interface UseCharacterConfigReturn {
   config: CharacterConfig;
   setConfig: (config: CharacterConfig) => void;
@@ -89,9 +103,29 @@ function resolveAccessoryConflicts(accessories: AccessoryId[]): AccessoryId[] {
 // Hook
 // ============================================================================
 
+/**
+ * Hook for managing character configuration state.
+ *
+ * @param options - Configuration options
+ * @param options.initialConfig - Initial configuration (defaults to DEFAULT_CONFIG)
+ * @param options.randomizeOnMount - Whether to randomize on mount (defaults to false)
+ *
+ * @example
+ * // Use with default config (no randomization)
+ * const { config, randomize } = useCharacterConfig();
+ *
+ * @example
+ * // Randomize on mount (useful for demo/showcase)
+ * const { config } = useCharacterConfig({ randomizeOnMount: true });
+ *
+ * @example
+ * // Use with saved/restored config
+ * const { config } = useCharacterConfig({ initialConfig: savedConfig });
+ */
 export function useCharacterConfig(
-  initialConfig: CharacterConfig = DEFAULT_CONFIG
+  options: UseCharacterConfigOptions = {}
 ): UseCharacterConfigReturn {
+  const { initialConfig = DEFAULT_CONFIG, randomizeOnMount = false } = options;
   const [config, setConfigInternal] = useState<CharacterConfig>(initialConfig);
 
   // Filter assets based on current gender
@@ -186,11 +220,14 @@ export function useCharacterConfig(
     logger.debug('Config reset to default');
   }, []);
 
-  // Randomize on initial mount
+  // Optionally randomize on initial mount
   useEffect(() => {
-    randomize();
+    if (randomizeOnMount) {
+      randomize();
+    }
+    // Only run on mount, randomize is stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [randomizeOnMount]);
 
   return {
     config,

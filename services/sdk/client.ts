@@ -69,15 +69,12 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Check if an error is retryable
+ * Check if an error is retryable based on its type or status code
  */
 function isRetryableError(error: unknown): boolean {
   if (error instanceof NetworkError) return true;
   if (error instanceof RateLimitError) return true;
-
-  if (error instanceof ApiError) {
-    return RETRYABLE_STATUS_CODES.includes(error.statusCode);
-  }
+  if (error instanceof ApiError) return true; // ApiError is only created for retryable status codes
 
   // Check for network-related error messages
   if (error instanceof Error) {
@@ -85,7 +82,8 @@ function isRetryableError(error: unknown): boolean {
     return (
       message.includes('network') ||
       message.includes('timeout') ||
-      message.includes('fetch')
+      message.includes('fetch') ||
+      message.includes('failed to fetch')
     );
   }
 
@@ -93,45 +91,73 @@ function isRetryableError(error: unknown): boolean {
 }
 
 /**
+ * Extract HTTP status code from Supabase function error
+ */
+function extractStatusCode(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null;
+
+  // Supabase FunctionsHttpError has a status property
+  const err = error as Record<string, unknown>;
+
+  // Check for status directly on error
+  if (typeof err.status === 'number') return err.status;
+
+  // Check for context.status (Supabase edge function error format)
+  if (err.context && typeof err.context === 'object') {
+    const context = err.context as Record<string, unknown>;
+    if (typeof context.status === 'number') return context.status;
+  }
+
+  return null;
+}
+
+/**
  * Parse API response error into appropriate error class
+ * Now properly handles HTTP status codes for retry logic
  */
 function parseApiError(error: unknown, data?: unknown): Error {
-  // Handle Supabase function error with response data
+  // Extract status code from error object
+  const statusCode = extractStatusCode(error);
+
+  // Get error message from response data or error object
+  let message = 'An unexpected error occurred';
+
   if (data && typeof data === 'object' && 'error' in data) {
-    const errorData = data as { error: string };
-    const message = errorData.error;
-
-    if (message.includes('credits') || message.includes('Insufficient')) {
-      return new InsufficientCreditsError();
-    }
-
-    if (message.includes('authentication') || message.includes('logged in')) {
-      return new AuthenticationError(message);
-    }
-
-    return new GenerationError(message);
+    message = (data as { error: string }).error;
+  } else if (error instanceof Error) {
+    message = error.message;
   }
 
-  // Handle standard Error objects
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
+  const messageLower = message.toLowerCase();
 
-    if (message.includes('credits') || message.includes('insufficient')) {
-      return new InsufficientCreditsError();
-    }
-
-    if (message.includes('authentication') || message.includes('logged in') || message.includes('unauthorized')) {
-      return new AuthenticationError(error.message);
-    }
-
-    if (message.includes('network') || message.includes('fetch')) {
-      return new NetworkError(error.message);
-    }
-
-    return new GenerationError(error.message);
+  // Check for specific non-retryable error types first
+  if (messageLower.includes('credits') || messageLower.includes('insufficient') || statusCode === 402) {
+    return new InsufficientCreditsError();
   }
 
-  return new GenerationError('An unexpected error occurred');
+  if (messageLower.includes('authentication') || messageLower.includes('logged in') ||
+      messageLower.includes('unauthorized') || statusCode === 401) {
+    return new AuthenticationError(message);
+  }
+
+  // Check for rate limiting (429)
+  if (statusCode === 429) {
+    return new RateLimitError();
+  }
+
+  // Check for retryable server errors (5xx) or timeout (408)
+  if (statusCode && RETRYABLE_STATUS_CODES.includes(statusCode)) {
+    return new ApiError(message, statusCode, 'generate-character');
+  }
+
+  // Check for network-related errors
+  if (messageLower.includes('network') || messageLower.includes('fetch') ||
+      messageLower.includes('failed to fetch')) {
+    return new NetworkError(message);
+  }
+
+  // Default to GenerationError for other failures
+  return new GenerationError(message);
 }
 
 // ============================================================================
