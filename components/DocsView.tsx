@@ -74,6 +74,7 @@ const generateCharacter = async (config) => {
   // 3. Generate if not cached
   const character = await client.generate({
     gender: 'female',
+    ageGroup: 'teen',
     hairStyle: 'bob',
     hairColor: 'blonde',
     clothing: 'hoodie',
@@ -105,6 +106,7 @@ const generateCharacter = async (config) => {
   // 3. Generate if not cached
   const character = await client.generate({
     gender: 'male',
+    ageGroup: 'young_adult',
     hairStyle: 'undercut',
     hairColor: 'black',
     clothing: 'jacket',
@@ -126,6 +128,7 @@ curl -X POST https://api.characterforge.com/v1/generate \\
   -H "Content-Type: application/json" \\
   -d '{
     "gender": "female",
+    "ageGroup": "kid",
     "hairStyle": "long_straight",
     "hairColor": "red",
     "clothing": "tshirt",
@@ -146,6 +149,13 @@ curl -X POST https://api.characterforge.com/v1/generate \\
             type: 'string',
             desc: 'Character gender identity',
             options: ['male', 'female']
+        },
+        {
+            param: 'ageGroup',
+            type: 'string (optional)',
+            desc: 'Age appearance of character',
+            options: ['kid', 'preteen', 'teen', 'young_adult', 'adult'],
+            default: 'teen'
         },
         {
             param: 'skinTone',
@@ -355,6 +365,7 @@ const client = new CharacterForge('YOUR_API_KEY');
 // Generate a character
 const character = await client.generate({
   gender: 'female',
+  ageGroup: 'preteen',
   skinTone: 'light',
   hairStyle: 'pixie',
   hairColor: 'blonde',

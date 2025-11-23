@@ -304,7 +304,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             <Bot size={14} strokeWidth={3} />
                         </div>
                         <span className="font-bold text-slate-900">CharacterForge</span>
-                        <span className="text-slate-400 text-sm">© 2024</span>
+                        <span className="text-slate-400 text-sm">© 2025</span>
                     </div>
                     <div className="flex gap-8 text-sm font-medium text-slate-500">
                         <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
