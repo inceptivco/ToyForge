@@ -389,25 +389,14 @@ console.log(character.url); // https://api.characterforge.com/v1/assets/...`}
             <div className="mb-16 bg-slate-50 border border-slate-200 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
                     <Shield size={18} className="text-brand-500" />
-                    Authentication Modes
+                    Authentication
                 </h3>
                 <p className="text-sm text-slate-600 mb-4">
-                    The <code className="px-1 py-0.5 bg-white border border-slate-200 rounded">generate</code> endpoint supports two secure authentication paths:
+                    Authenticate requests by sending your CharacterForge API key in the
+                    {' '}<code className="px-1 py-0.5 bg-white border border-slate-200 rounded">x-api-key</code> header. Your API key maps usage and credits to your account.
                 </p>
-                <ul className="text-sm text-slate-600 space-y-2 list-disc list-inside">
-                    <li>
-                        <span className="font-semibold text-slate-800">Dashboard / App</span>: continue using your Supabase session token via the
-                        {' '}<code className="px-1 py-0.5 bg-white border border-slate-200 rounded">Authorization: Bearer &lt;jwt&gt;</code> header. Keep JWT enforcement
-                        enabled so only signed-in users can generate via the UI.
-                    </li>
-                    <li>
-                        <span className="font-semibold text-slate-800">External clients & SDKs</span>: send your CharacterForge API key in the
-                        {' '}<code className="px-1 py-0.5 bg-white border border-slate-200 rounded">x-api-key</code> header. This avoids Supabase JWT checks while still
-                        mapping usage and credits to your account.
-                    </li>
-                </ul>
                 <p className="text-xs text-slate-500 mt-4">
-                    Tip: never place API keys in client-side code. Use a backend proxy or serverless function when calling from untrusted environments.
+                    <strong>Security tip:</strong> Never place API keys in client-side code. Use a backend proxy or serverless function when calling from untrusted environments.
                 </p>
             </div>
 
