@@ -224,14 +224,24 @@ The `ageGroup` parameter controls the apparent age of the character. This affect
 
 ### Hair Styles
 
-- `short`
-- `medium`
-- `long`
-- `bob`
-- `ponytail`
-- `fade`
-- `curly`
-- `wavy`
+**Female:**
+- `bob` - Sleek Bob
+- `ponytail` - Ponytail
+- `buns` - Space Buns
+- `long` - Long Wavy
+- `pixie` - Pixie
+
+**Male:**
+- `undercut` - Undercut
+- `quiff` - Quiff
+- `sidepart` - Side Part
+- `buzz` - Buzz Cut
+- `combover` - Combover
+
+**Unisex:**
+- `messy` - Messy
+- `afro` - Afro
+- `curly` - Curly
 
 ### Hair Colors
 
@@ -244,6 +254,9 @@ The `ageGroup` parameter controls the apparent age of the character. This affect
 - `blonde`
 - `platinum`
 - `grey`
+- `white`
+- `blue`
+- `purple`
 
 ### Clothing Items
 

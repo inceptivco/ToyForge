@@ -34,6 +34,8 @@ export const HAIR_COLORS: ColorPalette[] = [
   { id: 'platinum', name: 'Platinum', hex: '#fff9c4', promptValue: 'platinum blonde' },
   { id: 'grey', name: 'Grey', hex: '#9e9e9e', promptValue: 'silver grey' },
   { id: 'white', name: 'White', hex: '#f5f5f5', promptValue: 'white' },
+  { id: 'blue', name: 'Blue', hex: '#3b82f6', promptValue: 'vibrant blue' },
+  { id: 'purple', name: 'Purple', hex: '#9333ea', promptValue: 'vibrant purple' },
 ];
 
 export const CLOTHING_COLORS: ColorPalette[] = [
@@ -72,6 +74,7 @@ export const HAIR_STYLES: AssetOption[] = [
   { id: 'quiff', label: 'Quiff', promptValue: 'a voluminous quiff hairstyle', gender: 'male' },
   { id: 'sidepart', label: 'Side Part', promptValue: 'a neat side part hairstyle', gender: 'male' },
   { id: 'buzz', label: 'Buzz Cut', promptValue: 'a short buzz cut', gender: 'male' },
+  { id: 'combover', label: 'Combover', promptValue: 'a classic combover hairstyle', gender: 'male' },
 
   // Unisex
   { id: 'messy', label: 'Messy', promptValue: 'messy short textured hair' },

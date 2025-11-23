@@ -103,6 +103,8 @@ const PROMPT_MAPS = {
     'platinum': 'platinum blonde',
     'grey': 'silver grey',
     'white': 'white',
+    'blue': 'vibrant blue',
+    'purple': 'vibrant purple',
   },
   CLOTHING_COLORS: {
     'white': 'white',
@@ -135,6 +137,7 @@ const PROMPT_MAPS = {
     'quiff': 'a voluminous quiff hairstyle',
     'sidepart': 'a neat side part hairstyle',
     'buzz': 'a short buzz cut',
+    'combover': 'a classic combover hairstyle',
     'messy': 'messy short textured hair',
     'afro': 'a round puffy afro',
     'curly': 'short curly hair',
