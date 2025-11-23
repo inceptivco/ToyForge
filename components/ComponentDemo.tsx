@@ -2,36 +2,92 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CharacterForgeEmbed } from './CharacterForgeEmbed';
 import { Code, Eye, Copy, Check, Smartphone, ArrowRight, RefreshCw } from 'lucide-react';
 
-// Three SPECIFIC character configurations with their images (different from carousel)
-// These are fixed and will always cycle in this order
+// Six SPECIFIC character configurations with their images
+// These cycle in order on refresh
 const CHARACTER_CONFIGS = [
     {
-        gender: 'male' as const,
-        skinTone: 'fair',
-        hairStyle: 'short',
-        hairColor: 'dark_brown',
-        clothingColor: 'purple',
-        eyeColor: 'brown',
-        accessories: ['sunglasses'],
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'
-    },
-    {
+        // Character 1: Kid with glasses, headphones, beanie
         gender: 'female' as const,
-        hairColor: 'auburn',
+        ageGroup: 'kid',
+        skinTone: 'porcelain',
+        hairStyle: 'pixie',
+        hairColor: 'white',
+        clothing: 'blouse',
         clothingColor: 'teal',
-        eyeColor: 'hazel',
-        accessories: ['none'],
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f_original.png'
+        eyeColor: 'blue',
+        accessories: ['glasses', 'headphones', 'beanie'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/default-character.png'
     },
     {
+        // Character 2: Adult with sunglasses
         gender: 'male' as const,
+        ageGroup: 'adult',
         skinTone: 'brown',
-        hairStyle: 'fade',
-        hairColor: 'black',
+        hairStyle: 'messy',
+        hairColor: 'platinum',
+        clothing: 'sweater',
+        clothingColor: 'red',
+        eyeColor: 'dark',
+        accessories: ['sunglasses'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char2.png'
+    },
+    {
+        // Character 3: Kid with no accessories
+        gender: 'male' as const,
+        ageGroup: 'kid',
+        skinTone: 'medium',
+        hairStyle: 'buzz',
+        hairColor: 'platinum',
+        clothing: 'hoodie',
+        clothingColor: 'navy',
+        eyeColor: 'brown',
+        accessories: ['none'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char3.png'
+    },
+    {
+        // Character 4: Young adult with glasses
+        gender: 'male' as const,
+        ageGroup: 'young_adult',
+        skinTone: 'fair',
+        hairStyle: 'messy',
+        hairColor: 'ginger',
+        clothing: 'jacket',
         clothingColor: 'green',
         eyeColor: 'dark',
-        accessories: ['cap'],
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png'
+        accessories: ['glasses'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char4.png'
+    },
+    {
+        // Character 5: Preteen with beanie
+        gender: 'male' as const,
+        ageGroup: 'preteen',
+        skinTone: 'olive',
+        hairStyle: 'buzz',
+        hairColor: 'brown',
+        clothing: 'henley',
+        clothingColor: 'teal',
+        eyeColor: 'grey',
+        accessories: ['beanie'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char5.png'
+    },
+    {
+        // Character 6: Preteen with no accessories
+        gender: 'female' as const,
+        ageGroup: 'preteen',
+        skinTone: 'olive',
+        hairStyle: 'buns',
+        hairColor: 'ginger',
+        clothing: 'hoodie',
+        clothingColor: 'black',
+        eyeColor: 'brown',
+        accessories: ['none'],
+        transparent: true,
+        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char6.png'
     }
 ];
 
@@ -40,7 +96,10 @@ export const ComponentDemo: React.FC = () => {
     const [isCopied, setIsCopied] = useState(false);
     const [isInstallCopied, setIsInstallCopied] = useState(false);
     const [triggerLoading, setTriggerLoading] = useState(false);
-    const [currentConfigIndex, setCurrentConfigIndex] = useState(0);
+    // Initialize with random index on page load, then cycle in order
+    const [currentConfigIndex, setCurrentConfigIndex] = useState(() => 
+        Math.floor(Math.random() * CHARACTER_CONFIGS.length)
+    );
     const [isRefreshing, setIsRefreshing] = useState(false);
     const demoRef = useRef<HTMLDivElement>(null);
 
@@ -157,13 +216,19 @@ export const ComponentDemo: React.FC = () => {
     };
 
     const getSnippet = () => {
+        const accessoriesString = currentConfig.accessories && currentConfig.accessories.length > 0 && currentConfig.accessories[0] !== 'none'
+            ? `,\n    accessories: [${currentConfig.accessories.filter(a => a !== 'none').map(a => `'${a}'`).join(', ')}]`
+            : '';
+        
         const configString = `{
     gender: '${currentConfig.gender}',
+    ageGroup: '${currentConfig.ageGroup || 'teen'}',
     skinTone: '${currentConfig.skinTone || 'fair'}',
     hairStyle: '${currentConfig.hairStyle || 'short'}',
     hairColor: '${currentConfig.hairColor || 'brown'}',
+    clothing: '${currentConfig.clothing || 'tshirt'}',
     clothingColor: '${currentConfig.clothingColor || 'blue'}',
-    eyeColor: '${currentConfig.eyeColor || 'dark'}'${currentConfig.accessory && currentConfig.accessory !== 'none' ? `,\n    accessory: '${currentConfig.accessory}'` : ''}
+    eyeColor: '${currentConfig.eyeColor || 'dark'}'${accessoriesString}
   }`;
 
         if (activeTab === 'react-native') {
