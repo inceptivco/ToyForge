@@ -49,7 +49,7 @@ const CHARACTER_CONFIGS = [
     },
     {
         // Character 4: Young adult with glasses
-        gender: 'male' as const,
+        gender: 'female' as const,
         ageGroup: 'young_adult',
         skinTone: 'fair',
         hairStyle: 'messy',
