@@ -1,9 +1,27 @@
+import {
+  AssetOption,
+  CharacterConfig,
+  ColorPalette,
+  AgeGroup,
+  AgeGroupId,
+  SkinToneId,
+  HairColorId,
+  HairStyleId,
+  ClothingItemId,
+  ClothingColorId,
+  EyeColorId,
+  AccessoryId,
+} from "./types";
 
-import { AssetOption, CharacterConfig, ColorPalette } from "./types";
+// ============================================================================
+// Style Prompt
+// ============================================================================
 
-// The Master Style Prompt - Soft Matte Vinyl on White Background
-// We use White to ensure natural lighting without color spill.
-// Gemini 2.5 Flash Image is capable of segmenting this cleanly.
+/**
+ * The Master Style Prompt - Soft Matte Vinyl on White Background
+ * We use White to ensure natural lighting without color spill.
+ * Gemini 2.5 Flash Image is capable of segmenting this cleanly.
+ */
 export const STYLE_PROMPT = `
 Render a high-end collectible vinyl toy figure. Direct front view. Facing the camera straight on. Symmetrical upper body portrait.
 Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny plastic.
@@ -109,13 +127,9 @@ export const ACCESSORIES: AssetOption[] = [
   { id: 'beanie', label: 'Beanie', promptValue: 'wearing a knit beanie hat' },
 ];
 
-export interface AgeGroup {
-  id: string;
-  label: string;
-  ageRange: string;
-  description: string;
-  promptModifier: string;
-}
+// ============================================================================
+// Age Groups
+// ============================================================================
 
 export const AGE_GROUPS: AgeGroup[] = [
   {
