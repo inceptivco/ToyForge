@@ -12,6 +12,7 @@ import {
 } from '../constants';
 import { Shuffle, RotateCcw, User, Shirt, Sparkles, Wand2, Smile } from 'lucide-react';
 import { DEFAULT_CONFIG } from '../constants';
+import { AgeSlider } from './AgeSlider';
 
 interface ConfigPanelProps {
   config: CharacterConfig;
@@ -152,6 +153,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 {g}
               </button>
             ))}
+          </div>
+          <div className="mb-6">
+            <label className="text-xs text-slate-400 font-medium mb-3 block">Age Group</label>
+            <AgeSlider 
+              value={config.ageGroup || 'teen'} 
+              onChange={(age) => handleChange('ageGroup', age)}
+            />
           </div>
           <div>
             <label className="text-xs text-slate-400 font-medium mb-2 block">Skin Tone</label>

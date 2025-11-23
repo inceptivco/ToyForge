@@ -9,7 +9,7 @@ import { DeveloperDashboard } from './components/DeveloperDashboard';
 import { CreditPurchaseModal } from './components/CreditPurchaseModal';
 import { SignInModal } from './components/SignInModal';
 import { CharacterConfig } from './types';
-import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS } from './constants';
+import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS, AGE_GROUPS } from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
 import { supabase } from './services/supabase';
 
@@ -80,6 +80,7 @@ function MainApp() {
 
     return {
       gender,
+      ageGroup: AGE_GROUPS[Math.floor(Math.random() * AGE_GROUPS.length)].id,
       skinTone: SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)].id,
       hairStyle: validHairStyles[Math.floor(Math.random() * validHairStyles.length)].id,
       hairColor: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)].id,
