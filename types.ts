@@ -3,6 +3,7 @@ export type AssetId = string;
 
 export interface CharacterConfig {
   gender: 'male' | 'female';
+  ageGroup?: string;
   skinTone: string;
   hairStyle: string;
   hairColor: string;
@@ -11,6 +12,7 @@ export interface CharacterConfig {
   eyeColor: string;
   accessories: string[];
   transparent: boolean;
+  cache?: boolean;
 }
 
 export interface AssetOption {

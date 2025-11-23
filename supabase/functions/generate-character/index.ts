@@ -14,6 +14,7 @@ globalThis.Buffer = Buffer;
 
 interface CharacterConfig {
   gender?: string;
+  ageGroup?: string;
   skinTone: string;
   hairStyle: string;
   hairColor: string;
@@ -157,6 +158,13 @@ const PROMPT_MAPS = {
     'headphones': 'wearing large headphones around the neck',
     'cap': 'wearing a baseball cap; forward orientation = visible visor; backward orientation = absolutely no visor visible; never mix backward orientation with any visible brim, peak, or visor-like shape',
     'beanie': 'wearing a knit beanie hat',
+  },
+  AGE_GROUPS: {
+    'kid': 'Childlike proportions with larger head-to-body ratio (1:3), very round soft features, big innocent eyes, button nose, gentle expression',
+    'preteen': 'Pre-adolescent proportions (1:4 head-to-body), slightly more defined features while maintaining softness, bright curious expression',
+    'teen': 'Adolescent proportions (1:5 head-to-body), balanced features, expressive and energetic',
+    'young_adult': 'Young adult proportions (1:6 head-to-body), refined features, confident presence, mature expression',
+    'adult': 'Mature adult proportions (1:6.5 head-to-body), fully defined features, distinguished appearance, composed expression'
   }
 } as const;
 
@@ -451,6 +459,9 @@ function normalizeAccessories(accessories: string | string[] | undefined): strin
 }
 
 function buildCharacterPrompt(config: CharacterConfig): string {
+  const ageGroup = config.ageGroup || 'teen';
+  const agePrompt = PROMPT_MAPS.AGE_GROUPS[ageGroup as keyof typeof PROMPT_MAPS.AGE_GROUPS] || PROMPT_MAPS.AGE_GROUPS['teen'];
+  
   const skinTonePrompt = PROMPT_MAPS.SKIN_TONES[config.skinTone as keyof typeof PROMPT_MAPS.SKIN_TONES] || PROMPT_MAPS.SKIN_TONES['medium'];
   const eyeColorPrompt = PROMPT_MAPS.EYE_COLORS[config.eyeColor as keyof typeof PROMPT_MAPS.EYE_COLORS] || 'dark';
   const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[config.hairStyle as keyof typeof PROMPT_MAPS.HAIR_STYLES] || PROMPT_MAPS.HAIR_STYLES['messy'];
@@ -476,6 +487,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     A cute 3D vinyl toy character.
     View: Direct front view. Facing camera.
     Gender: ${config.gender || 'female'}.
+    Age: ${agePrompt}.
     Skin: ${skinTonePrompt}.
     Eyes: Large circular ${eyeColorPrompt} eyes.
     Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.

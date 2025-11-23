@@ -31,6 +31,7 @@ export const MyCharacter = () => {
       apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'female',
+        ageGroup: 'teen',
         skinTone: 'light',
         hairStyle: 'bob',
         hairColor: 'auburn',
@@ -60,6 +61,7 @@ export const MyCharacter = () => {
 ```typescript
 interface CharacterConfig {
   gender?: 'male' | 'female';
+  ageGroup?: string; // 'kid' | 'preteen' | 'teen' | 'young_adult' | 'adult' (default: 'teen')
   skinTone?: string;
   hairStyle?: string;
   hairColor?: string;
@@ -147,6 +149,7 @@ Content-Type: application/json
 ```json
 {
   "gender": "female",
+  "ageGroup": "teen",
   "skinTone": "light",
   "hairStyle": "bob",
   "hairColor": "auburn",
@@ -173,6 +176,7 @@ curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-char
   -H "Content-Type: application/json" \
   -d '{
     "gender": "female",
+    "ageGroup": "young_adult",
     "skinTone": "light",
     "hairStyle": "bob",
     "clothingColor": "blue"
@@ -194,6 +198,18 @@ curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-char
 
 - `male`
 - `female`
+
+### Age Groups
+
+The `ageGroup` parameter controls the apparent age of the character. This affects proportions, facial features, and overall appearance. **Default: `teen`**
+
+- `kid` - Kid (3-8 years): Childlike proportions with larger head-to-body ratio
+- `preteen` - Preteen (9-12 years): Pre-adolescent proportions with slightly more defined features
+- `teen` - Teen (13-17 years): Adolescent proportions, balanced features (default)
+- `young_adult` - Young Adult (18-25 years): Young adult proportions with refined features
+- `adult` - Adult (25+ years): Mature adult proportions with fully defined features
+
+**Note:** The `ageGroup` parameter is optional. If omitted, it defaults to `teen` to maintain consistency with existing generations.
 
 ### Skin Tones
 
@@ -286,6 +302,7 @@ import { CharacterForge } from '@characterforge/react';
 export const CharacterCreator = () => {
   const [config, setConfig] = useState({
     gender: 'female',
+    ageGroup: 'preteen',
     skinTone: 'light',
     hairStyle: 'bob',
     hairColor: 'auburn',
@@ -365,6 +382,7 @@ async function generateCharacter(config) {
 // Usage
 const imageUrl = await generateCharacter({
   gender: 'female',
+  ageGroup: 'kid',
   skinTone: 'light',
   hairStyle: 'bob',
   clothingColor: 'blue'
@@ -392,6 +410,7 @@ def generate_character(config, api_key):
 result = generate_character(
     {
         "gender": "female",
+        "ageGroup": "adult",
         "skinTone": "light",
         "hairStyle": "bob",
         "clothingColor": "blue"

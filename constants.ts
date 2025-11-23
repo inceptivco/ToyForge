@@ -106,8 +106,55 @@ export const ACCESSORIES: AssetOption[] = [
   { id: 'beanie', label: 'Beanie', promptValue: 'wearing a knit beanie hat' },
 ];
 
+export interface AgeGroup {
+  id: string;
+  label: string;
+  ageRange: string;
+  description: string;
+  promptModifier: string;
+}
+
+export const AGE_GROUPS: AgeGroup[] = [
+  {
+    id: 'kid',
+    label: 'Kid',
+    ageRange: '3-8 years',
+    description: 'Playful child appearance',
+    promptModifier: 'Childlike proportions with larger head-to-body ratio (1:3), very round soft features, big innocent eyes, button nose, gentle expression'
+  },
+  {
+    id: 'preteen',
+    label: 'Preteen',
+    ageRange: '9-12 years',
+    description: 'Young preteen appearance',
+    promptModifier: 'Pre-adolescent proportions (1:4 head-to-body), slightly more defined features while maintaining softness, bright curious expression'
+  },
+  {
+    id: 'teen',
+    label: 'Teen',
+    ageRange: '13-17 years',
+    description: 'Teenage appearance',
+    promptModifier: 'Adolescent proportions (1:5 head-to-body), balanced features, expressive and energetic'
+  },
+  {
+    id: 'young_adult',
+    label: 'Young Adult',
+    ageRange: '18-25 years',
+    description: 'Young adult appearance',
+    promptModifier: 'Young adult proportions (1:6 head-to-body), refined features, confident presence, mature expression'
+  },
+  {
+    id: 'adult',
+    label: 'Adult',
+    ageRange: '25+ years',
+    description: 'Mature adult appearance',
+    promptModifier: 'Mature adult proportions (1:6.5 head-to-body), fully defined features, distinguished appearance, composed expression'
+  }
+];
+
 export const DEFAULT_CONFIG: CharacterConfig = {
   gender: 'female',
+  ageGroup: 'teen',
   skinTone: 'light',
   hairStyle: 'bob',
   hairColor: 'blonde',
