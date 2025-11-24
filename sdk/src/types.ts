@@ -152,6 +152,12 @@ export interface CacheManager {
    * Delete a specific cached item (optional)
    */
   delete?(key: string): Promise<void>;
+
+  /**
+   * Destroy the cache manager and clean up resources (optional)
+   * Call this when you no longer need the cache instance
+   */
+  destroy?(): void;
 }
 
 // ============================================================================

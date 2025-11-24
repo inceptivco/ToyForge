@@ -70,6 +70,10 @@ class NoOpCacheManager implements CacheManager {
   async delete(_key: string): Promise<void> {
     // No-op
   }
+
+  destroy(): void {
+    // No-op
+  }
 }
 
 // Export cache managers

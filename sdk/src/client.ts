@@ -359,6 +359,19 @@ export class CharacterForgeClient {
     // This could be extended to provide more detailed stats
     return null;
   }
+
+  /**
+   * Destroy the client and clean up resources
+   * Call this when you no longer need the client instance
+   */
+  destroy(): void {
+    sdkLogger.info('Destroying SDK client');
+    
+    // Clean up cache manager resources if it has a destroy method
+    if (this.cacheManager && 'destroy' in this.cacheManager && typeof this.cacheManager.destroy === 'function') {
+      this.cacheManager.destroy();
+    }
+  }
 }
 
 // ============================================================================

@@ -68,6 +68,7 @@ export class WebCacheManager implements CacheManager {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private urlManager: ObjectURLManager = new ObjectURLManager();
   private isSupported: boolean;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.isSupported = typeof window !== 'undefined' && !!window.indexedDB;
@@ -211,6 +212,21 @@ export class WebCacheManager implements CacheManager {
     }
   }
 
+  /**
+   * Destroy the cache manager and clean up resources
+   * Call this when you no longer need the cache instance
+   */
+  destroy(): void {
+    // Clear the cleanup interval
+    if (this.cleanupIntervalId !== null) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+
+    // Revoke all object URLs
+    this.urlManager.revokeAll();
+  }
+
   // =============================================================================
   // Private Helpers
   // =============================================================================
@@ -303,8 +319,13 @@ export class WebCacheManager implements CacheManager {
   }
 
   private scheduleCleanup(): void {
+    // Clear any existing interval first
+    if (this.cleanupIntervalId !== null) {
+      clearInterval(this.cleanupIntervalId);
+    }
+
     // Run cleanup every hour
-    setInterval(() => this.cleanup().catch(() => {}), 60 * 60 * 1000);
+    this.cleanupIntervalId = setInterval(() => this.cleanup().catch(() => {}), 60 * 60 * 1000);
   }
 
   private async cleanup(): Promise<void> {
