@@ -26,13 +26,13 @@ function MainApp() {
   const navigate = useNavigate();
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('credits_balance')
       .eq('id', userId)
       .single();
 
-    if (data) {
+    if (!error && data) {
       setCredits(data.credits_balance);
     }
   };
