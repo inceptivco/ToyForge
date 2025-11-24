@@ -11,8 +11,16 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        // SECURITY: Do NOT expose API keys to the client-side bundle!
+        // API keys should only be used on the server-side (Edge Functions).
+        // The Gemini API key is used in supabase/functions/generate-character/index.ts
+        // and should never be exposed to the frontend.
+        //
+        // If you need to make API calls from the client, use the Supabase Edge Functions
+        // which securely store the API key in environment variables.
+        //
+        // REMOVED: 'process.env.API_KEY' and 'process.env.GEMINI_API_KEY'
+        // These were exposing sensitive credentials to the browser.
       },
       resolve: {
         alias: {

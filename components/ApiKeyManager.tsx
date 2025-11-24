@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { apiLogger } from '../utils/logger';
 import { Key, Trash2, Copy, Check, Plus, AlertTriangle, X } from 'lucide-react';
 
 interface ApiKey {
@@ -50,13 +51,13 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
                 throw new Error('Please sign in first');
             }
 
-            console.log('[ApiKeyManager] Invoking create-api-key with label:', label);
-            
+            apiLogger.info('Invoking create-api-key', { label });
+
             const { data, error } = await supabase.functions.invoke('create-api-key', {
                 body: { label }
             });
 
-            console.log('[ApiKeyManager] Response:', { data, error });
+            apiLogger.debug('Response received', { hasData: !!data, hasError: !!error });
 
             // Handle errors: Check for error in response data first (edge function returns error in body for non-2xx)
             // Supabase may set error for non-2xx status codes, but data should still contain the response body
@@ -65,7 +66,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
                 const errorMessage = (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string')
                     ? data.error
                     : (error?.message || 'Failed to create API key. Please try again.');
-                console.error('[ApiKeyManager] Error from function:', errorMessage);
+                apiLogger.error('Error from function', new Error(errorMessage));
                 throw new Error(errorMessage);
             }
 
@@ -73,15 +74,15 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
                 throw new Error('No API key returned from server');
             }
 
-            console.log('[ApiKeyManager] Key created successfully');
+            apiLogger.info('Key created successfully');
             setNewKey(data.apiKey);
             setLabel('');
             await fetchKeys();
             onKeysChange?.();
             // Keep modal open to show the key
-        } catch (err: any) {
-            console.error('[ApiKeyManager] Failed to create key:', err);
-            const errorMessage = err?.message || 'Failed to create API key. Please try again.';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to create API key. Please try again.';
+            apiLogger.error('Failed to create key', err instanceof Error ? err : undefined);
             setError(errorMessage);
             alert('Failed to create API key: ' + errorMessage);
         } finally {
@@ -93,25 +94,25 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
         if (!confirm('Are you sure? This will revoke the API key. Past usage will still be visible for billing purposes.')) return;
 
         try {
-            console.log('[ApiKeyManager] Soft deleting key with id:', id);
-            
+            apiLogger.info('Soft deleting key', { keyId: id.substring(0, 8) + '...' });
+
             // Soft delete by setting deleted_at timestamp
             const { error } = await supabase
                 .from('api_keys')
                 .update({ deleted_at: new Date().toISOString() })
                 .eq('id', id);
-            
+
             if (error) {
-                console.error('[ApiKeyManager] Delete error:', error);
+                apiLogger.error('Delete error', error);
                 throw error;
             }
 
-            console.log('[ApiKeyManager] Key soft deleted successfully');
+            apiLogger.info('Key soft deleted successfully');
             setKeys(keys.filter(k => k.id !== id));
             onKeysChange?.();
-        } catch (err: any) {
-            console.error('[ApiKeyManager] Failed to delete key:', err);
-            const errorMessage = err?.message || 'Failed to revoke API key. Please try again.';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to revoke API key. Please try again.';
+            apiLogger.error('Failed to delete key', err instanceof Error ? err : undefined);
             alert('Failed to revoke API key: ' + errorMessage);
         }
     };

@@ -2,28 +2,31 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { CreditPurchaseModal } from './CreditPurchaseModal';
+import { logger } from '../utils/logger';
 import { Loader2, CreditCard, TrendingUp, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+const billingLogger = logger.child('Billing');
+
 interface BillingViewProps {
-    user: any;
+    user: { id: string; email?: string } | null;
 }
 
 export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
     const location = useLocation();
     const [credits, setCredits] = useState<number | null>(null);
     const [apiCredits, setApiCredits] = useState<number | null>(null);
-    const [usageData, setUsageData] = useState<any[]>([]);
+    const [usageData, setUsageData] = useState<{ date: string; credits: number; breakdown: Record<string, number> }[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
     const fetchData = useCallback(async () => {
         if (!user) {
-            console.warn('[BillingView] No user provided, cannot fetch data');
+            billingLogger.warn('No user provided, cannot fetch data');
             return;
         }
-        
-        console.log('[BillingView] Fetching data for user:', user.id);
+
+        billingLogger.debug('Fetching data', { userId: user.id });
         setLoading(true);
         try {
             // Fetch Profile (Credits)
@@ -34,20 +37,20 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
                 .single();
 
             if (profileError) {
-                console.error('[BillingView] Error fetching profile:', profileError);
+                billingLogger.error('Error fetching profile', profileError);
                 return;
             }
 
-            console.log('[BillingView] Profile data received:', profile);
-            
+            billingLogger.debug('Profile data received', { hasProfile: !!profile });
+
             if (profile) {
                 const apiCreds = profile.api_credits_balance ?? 0;
                 const appCreds = profile.credits_balance ?? 0;
-                console.log('[BillingView] Setting credits - API:', apiCreds, 'App:', appCreds);
+                billingLogger.debug('Setting credits', { apiCredits: apiCreds, appCredits: appCreds });
                 setCredits(appCreds);
                 setApiCredits(apiCreds);
             } else {
-                console.warn('[BillingView] No profile data found');
+                billingLogger.warn('No profile data found');
                 setCredits(0);
                 setApiCredits(0);
             }
@@ -71,28 +74,32 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
                 .limit(100); // Get recent 100 API generations
             
             if (genError) {
-                console.error('[BillingView] Error fetching generations:', genError);
+                billingLogger.error('Error fetching generations', genError);
             }
 
             if (generations) {
                 // Group by date and API key (only API usage now)
-                const grouped = generations.reduce((acc: any, curr: any) => {
+                type GroupedUsage = Record<string, Record<string, number>>;
+                const grouped = generations.reduce((acc: GroupedUsage, curr) => {
                     const date = new Date(curr.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    const apiKeyLabel = curr.api_keys?.label || `API Key ${curr.api_key_id.substring(0, 8)}`;
-                    
+                    const apiKeyId = curr.api_key_id as string;
+                    const apiKeyData = curr.api_keys as { id: string; label: string; key_hash: string } | null;
+                    const apiKeyLabel = apiKeyData?.label || `API Key ${apiKeyId.substring(0, 8)}`;
+
                     if (!acc[date]) acc[date] = {};
                     if (!acc[date][apiKeyLabel]) acc[date][apiKeyLabel] = 0;
                     acc[date][apiKeyLabel] += (curr.cost_in_credits || 1);
                     return acc;
-                }, {});
+                }, {} as GroupedUsage);
 
                 // Convert to chart data format - sum all API keys per date for the main chart
                 const chartData = Object.keys(grouped).map(date => {
-                    const totalCredits = Object.values(grouped[date] as any).reduce((sum: number, val: any) => sum + val, 0);
+                    const dateData = grouped[date];
+                    const totalCredits = Object.values(dateData).reduce((sum, val) => sum + val, 0);
                     return {
                         date,
                         credits: totalCredits,
-                        breakdown: grouped[date] // Store breakdown for detailed view if needed
+                        breakdown: dateData // Store breakdown for detailed view if needed
                     };
                 }).slice(-7); // Last 7 days with activity
 
@@ -100,7 +107,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
             }
 
         } catch (error) {
-            console.error('Error fetching billing data:', error);
+            billingLogger.error('Error fetching billing data', error);
         } finally {
             setLoading(false);
         }
@@ -170,14 +177,14 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
 
     // Estimated Value Calculation (assuming ~$0.10 per credit for display)
     const estimatedValue = (apiCredits !== null && apiCredits > 0)
-        ? (apiCredits * 0.10).toFixed(2) 
+        ? (apiCredits * 0.10).toFixed(2)
         : (credits !== null && credits > 0)
         ? (credits * 0.15).toFixed(2)
         : '0.00';
-    
+
     // Debug logging
     if (apiCredits === null && credits === null) {
-        console.log('[BillingView] State values are null - user:', user?.id);
+        billingLogger.debug('State values are null', { userId: user?.id });
     }
 
     if (loading) {

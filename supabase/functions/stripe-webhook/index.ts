@@ -2,16 +2,28 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@^14.0.0";
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+// SECURITY: Validate Stripe key exists before initializing
+const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+if (!stripeSecretKey) {
+    console.error('[stripe-webhook] FATAL: Missing STRIPE_SECRET_KEY environment variable');
+}
+
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
     apiVersion: '2023-10-16',
     httpClient: Stripe.createFetchHttpClient(),
-});
+}) : null;
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
 serve(async (req) => {
     console.log('[stripe-webhook] Request received');
-    
+
+    // SECURITY: Check Stripe is initialized
+    if (!stripe) {
+        console.error('[stripe-webhook] Stripe not initialized - missing API key');
+        return new Response("Stripe service unavailable", { status: 503 });
+    }
+
     const signature = req.headers.get("Stripe-Signature");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 

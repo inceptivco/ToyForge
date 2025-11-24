@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { authLogger } from '../utils/logger';
 import type { User, UserProfile, AuthState } from '../types';
 
 interface UseAuthReturn extends AuthState {
@@ -29,13 +30,13 @@ export function useAuth(): UseAuthReturn {
         .single();
 
       if (error) {
-        console.error('[useAuth] Error fetching profile:', error);
+        authLogger.error('Error fetching profile', error);
         return null;
       }
 
       return data as UserProfile;
     } catch (error) {
-      console.error('[useAuth] Profile fetch failed:', error);
+      authLogger.error('Profile fetch failed', error);
       return null;
     }
   }, []);
@@ -72,7 +73,7 @@ export function useAuth(): UseAuthReturn {
           }
         }
       } catch (error) {
-        console.error('[useAuth] Initialization error:', error);
+        authLogger.error('Initialization error', error);
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -121,7 +122,7 @@ export function useAuth(): UseAuthReturn {
       setUser(null);
       setProfile(null);
     } catch (error) {
-      console.error('[useAuth] Sign out error:', error);
+      authLogger.error('Sign out error', error);
       throw error;
     }
   }, []);
