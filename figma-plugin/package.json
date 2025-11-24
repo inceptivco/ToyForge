@@ -1,7 +1,7 @@
 {
-  "name": "toyforge-figma-plugin",
+  "name": "characterforge-figma-plugin",
   "version": "1.0.0",
-  "description": "ToyForge Character Generator for Figma",
+  "description": "CharacterForge Character Generator for Figma",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite build --watch --mode development\" \"tsc -p tsconfig.node.json --watch\"",

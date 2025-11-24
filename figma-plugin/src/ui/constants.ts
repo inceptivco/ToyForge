@@ -1,5 +1,5 @@
 /**
- * ToyForge Figma Plugin - Constants
+ * CharacterForge Figma Plugin - Constants
  */
 
 import type { ColorPalette, AssetOption, AgeGroup, CharacterConfig } from './types';
@@ -176,9 +176,9 @@ export const DEFAULT_CONFIG: CharacterConfig = {
 
 // Storage Keys
 export const STORAGE_KEYS = {
-  AUTH_SESSION: 'toyforge_session',
-  HISTORY: 'toyforge_history',
-  CONFIG: 'toyforge_config',
+  AUTH_SESSION: 'characterforge_session',
+  HISTORY: 'characterforge_history',
+  CONFIG: 'characterforge_config',
 };
 
 // Max History Items

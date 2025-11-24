@@ -1,4 +1,4 @@
-# ToyForge Figma Plugin
+# CharacterForge Figma Plugin
 
 A Figma plugin that allows designers to create and insert AI-generated vinyl toy characters directly onto the canvas.
 
@@ -74,7 +74,7 @@ The plugin uses magic link authentication via Supabase with a polling-based sess
 
 1. User enters email in the plugin
 2. Plugin generates a unique auth code and sends the magic link
-3. User clicks the magic link → redirected to the ToyForge web app
+3. User clicks the magic link → redirected to the CharacterForge web app
 4. Web app stores the session tokens in the `figma_auth_codes` database table
 5. Plugin polls the database and retrieves the tokens to establish the session
 
@@ -108,4 +108,4 @@ Payments are handled securely via Stripe (opens in browser).
 
 ## License
 
-Proprietary - ToyForge
+Proprietary - CharacterForge

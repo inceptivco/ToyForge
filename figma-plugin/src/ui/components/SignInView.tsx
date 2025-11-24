@@ -122,7 +122,7 @@ export const SignInView: React.FC<SignInViewProps> = ({
         <Sparkles size={28} />
       </div>
 
-      <h2 className="text-lg font-bold text-slate-900 mb-1">ToyForge</h2>
+      <h2 className="text-lg font-bold text-slate-900 mb-1">CharacterForge</h2>
       <p className="text-xs text-slate-500 mb-6 text-center">
         Create stunning vinyl toy characters
       </p>

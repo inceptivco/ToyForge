@@ -1,5 +1,5 @@
 /**
- * ToyForge Figma Plugin - Auth Hook
+ * CharacterForge Figma Plugin - Auth Hook
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -58,7 +58,9 @@ export function useAuth() {
       });
       // Clear pending auth if we're authenticated
       setPendingAuth(null);
-      clearPendingAuth();
+      clearPendingAuth().catch(() => {
+        // Ignore errors
+      });
     } catch (error) {
       console.error('Failed to load profile:', error);
       setState({
@@ -75,21 +77,62 @@ export function useAuth() {
 
   // Initialize auth state
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeAuth = async () => {
+      // Get initial session - this should restore from localStorage
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
+      }
+      
+      console.log('Initial session check:', session ? 'Session found' : 'No session');
+      if (session) {
+        console.log('Session user:', session.user.email);
+        console.log('Session expires at:', new Date(session.expires_at * 1000).toISOString());
+        
+        // Check if session is expired or about to expire (within 5 minutes)
+        const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (expiresAt < now + fiveMinutes) {
+          console.log('Session expired or expiring soon, attempting refresh...');
+          // Try to refresh the session
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('Failed to refresh session:', refreshError);
+            // Session is invalid, clear it
+            await supabase.auth.signOut();
+            loadProfile(null);
+            return;
+          }
+          if (refreshedSession) {
+            console.log('Session refreshed successfully');
+            loadProfile(refreshedSession);
+            return;
+          }
+        }
+      }
+      
       loadProfile(session);
-    });
+    };
+
+    initializeAuth();
 
     // Check for pending auth from previous session
-    const pending = getPendingAuth();
-    if (pending && Date.now() - pending.timestamp < 10 * 60 * 1000) { // 10 minute expiry
-      setPendingAuth(pending);
-    } else if (pending) {
-      clearPendingAuth();
-    }
+    getPendingAuth().then((pending) => {
+      if (pending && Date.now() - pending.timestamp < 10 * 60 * 1000) { // 10 minute expiry
+        setPendingAuth(pending);
+      } else if (pending) {
+        clearPendingAuth();
+      }
+    }).catch(() => {
+      // Ignore errors
+    });
 
     // Subscribe to auth changes
     const { data: { subscription } } = onAuthStateChange((session) => {
+      console.log('Auth state changed, loading profile');
       loadProfile(session);
     });
 
@@ -118,6 +161,17 @@ export function useAuth() {
       const result = await pollForAuthCompletion(pendingAuth.authCode);
       if (result.success) {
         // Auth completed! The onAuthStateChange listener should pick this up
+        console.log('Auth completed successfully, session should be established');
+        
+        // Force a profile refresh to ensure credits are loaded
+        setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('Refreshing profile after auth completion');
+            await loadProfile(session);
+          }
+        }, 500); // Small delay to ensure session is fully established
+        
         setPendingAuth(null);
         setIsPolling(false);
         if (pollIntervalRef.current) {
@@ -142,7 +196,9 @@ export function useAuth() {
       }
       setIsPolling(false);
       setPendingAuth(null);
-      clearPendingAuth();
+      clearPendingAuth().catch(() => {
+        // Ignore errors
+      });
     }, 10 * 60 * 1000);
 
     return () => {
@@ -180,7 +236,9 @@ export function useAuth() {
   // Cancel pending auth
   const cancelAuth = useCallback(() => {
     setPendingAuth(null);
-    clearPendingAuth();
+    clearPendingAuth().catch(() => {
+      // Ignore errors
+    });
     setIsPolling(false);
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);

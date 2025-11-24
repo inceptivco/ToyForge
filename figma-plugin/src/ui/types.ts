@@ -1,5 +1,5 @@
 /**
- * ToyForge Figma Plugin - Type Definitions
+ * CharacterForge Figma Plugin - Type Definitions
  */
 
 // Gender & Age

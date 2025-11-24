@@ -49,10 +49,18 @@ serve(async (req) => {
         const { userId } = authResult;
         console.log(`[create-checkout] User authenticated: ${userId}`);
 
+        // Get user email for Stripe checkout
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+        const userEmail = userData?.user?.email;
+        if (userError) {
+            console.warn(`[create-checkout] Could not fetch user email: ${userError.message}`);
+        }
+        console.log(`[create-checkout] User email: ${userEmail || 'Not available'}`);
+
         // 2. Parse Request
         const body = await req.json();
         console.log('[create-checkout] Request body:', JSON.stringify(body));
-        const { amount, packId, type = 'app' } = body;
+        const { amount, packId, type = 'app', successUrl, cancelUrl } = body;
 
         let priceAmount = 0;
         let credits = 0;
@@ -103,29 +111,46 @@ serve(async (req) => {
         }
 
         // 3. Create Checkout Session
-        // Get origin from Referer header or Origin header, fallback to a default
-        const referer = req.headers.get('referer') || req.headers.get('origin') || '';
-        let baseUrl = referer;
+        // Determine success and cancel URLs
+        let finalSuccessUrl: string;
+        let finalCancelUrl: string;
         
-        // If referer includes a path, extract just the origin
-        if (referer) {
-            try {
-                const url = new URL(referer);
-                baseUrl = `${url.protocol}//${url.host}`;
-            } catch {
-                // If URL parsing fails, use as-is
-                baseUrl = referer.replace(/\/[^/]*$/, ''); // Remove path if present
+        // If explicit URLs are provided (e.g., from Figma plugin), use them
+        if (successUrl && cancelUrl) {
+            finalSuccessUrl = successUrl;
+            finalCancelUrl = cancelUrl;
+        } else {
+            // Otherwise, try to determine from headers (web app)
+            const referer = req.headers.get('referer') || req.headers.get('origin') || '';
+            let baseUrl = referer;
+            
+            // If referer includes a path, extract just the origin
+            if (referer) {
+                try {
+                    const url = new URL(referer);
+                    baseUrl = `${url.protocol}//${url.host}`;
+                } catch {
+                    // If URL parsing fails, use as-is
+                    baseUrl = referer.replace(/\/[^/]*$/, ''); // Remove path if present
+                }
             }
-        }
-        
-        // Ensure we have a valid base URL
-        if (!baseUrl || baseUrl === '') {
-            baseUrl = 'http://localhost:3000'; // Fallback for local development
+            
+            // Ensure we have a valid base URL
+            if (!baseUrl || baseUrl === '') {
+                baseUrl = 'http://localhost:3000'; // Fallback for local development
+            }
+            
+            finalSuccessUrl = type === 'api'
+                ? `${baseUrl}/developer/billing?success=true`
+                : `${baseUrl}/app?success=true`;
+            finalCancelUrl = type === 'api'
+                ? `${baseUrl}/developer/billing?canceled=true`
+                : `${baseUrl}/app?canceled=true`;
         }
 
         console.log(`[create-checkout] Creating Stripe session: ${credits} credits, $${(priceAmount / 100).toFixed(2)}, type: ${type}`);
         
-        const session = await stripe.checkout.sessions.create({
+        const sessionParams: Stripe.Checkout.SessionCreateParams = {
             payment_method_types: ['card'],
             line_items: [
                 {
@@ -142,19 +167,23 @@ serve(async (req) => {
                 },
             ],
             mode: 'payment',
-            success_url: type === 'api'
-                ? `${baseUrl}/developer/billing?success=true`
-                : `${baseUrl}/app?success=true`,
-            cancel_url: type === 'api'
-                ? `${baseUrl}/developer/billing?canceled=true`
-                : `${baseUrl}/app?canceled=true`,
+            success_url: finalSuccessUrl,
+            cancel_url: finalCancelUrl,
             client_reference_id: userId,
             metadata: {
                 credits: credits.toString(),
                 user_id: userId,
                 credit_type: type, // Important for webhook to know which balance to update
             },
-        });
+        };
+
+        // Pre-fill customer email if available (prevents email mismatch issues)
+        if (userEmail) {
+            sessionParams.customer_email = userEmail;
+            console.log(`[create-checkout] Pre-filling Stripe checkout email: ${userEmail}`);
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionParams);
 
         console.log(`[create-checkout] Stripe session created: ${session.id}, URL: ${session.url}`);
 

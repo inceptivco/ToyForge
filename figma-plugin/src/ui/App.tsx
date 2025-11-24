@@ -1,5 +1,5 @@
 /**
- * ToyForge Figma Plugin - Main App Component
+ * CharacterForge Figma Plugin - Main App Component
  */
 
 import React, { useState, useEffect } from 'react';
@@ -91,7 +91,7 @@ export const App: React.FC = () => {
           <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
             <Wand2 size={14} className="text-white" />
           </div>
-          <span className="font-bold text-sm text-slate-900">ToyForge</span>
+          <span className="font-bold text-sm text-slate-900">CharacterForge</span>
         </div>
 
         <div className="flex items-center gap-2">

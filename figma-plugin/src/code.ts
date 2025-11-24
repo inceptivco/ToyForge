@@ -7,6 +7,12 @@ figma.showUI(__html__, {
   themeColors: true,
 });
 
+// Send a test message to verify message passing works
+setTimeout(() => {
+  console.log('Sending test message to UI');
+  figma.ui.postMessage({ type: 'test', message: 'Hello from plugin code' });
+}, 1000);
+
 // Message types from UI
 interface PlaceImageMessage {
   type: 'place-image';
@@ -28,10 +34,37 @@ interface NotifyMessage {
   error?: boolean;
 }
 
-type PluginMessage = PlaceImageMessage | ResizeMessage | NotifyMessage;
+interface StorageGetMessage {
+  type: 'storage-get';
+  key: string;
+  id: string;
+}
+
+interface StorageSetMessage {
+  type: 'storage-set';
+  key: string;
+  value: string;
+  id: string;
+}
+
+interface StorageRemoveMessage {
+  type: 'storage-remove';
+  key: string;
+  id: string;
+}
+
+interface StorageResponse {
+  type: 'storage-response';
+  id: string;
+  value?: string | null;
+  error?: string;
+}
+
+type PluginMessage = PlaceImageMessage | ResizeMessage | NotifyMessage | StorageGetMessage | StorageSetMessage | StorageRemoveMessage;
 
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
+  console.log('Plugin received message:', msg.type, msg);
   switch (msg.type) {
     case 'place-image':
       await placeImageOnCanvas(msg);
@@ -42,6 +75,65 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'notify':
       figma.notify(msg.message, { error: msg.error });
       break;
+    case 'storage-get': {
+      console.log('Received storage-get request:', msg.key, msg.id);
+      try {
+        const value = await figma.clientStorage.getAsync(msg.key);
+        console.log('Storage get result:', msg.key, value ? 'Found' : 'Not found');
+        const response: StorageResponse = {
+          type: 'storage-response',
+          id: msg.id,
+          value: value || null,
+        };
+        console.log('Sending storage-response to UI:', response);
+        figma.ui.postMessage(response);
+      } catch (error) {
+        console.error('Storage get error:', error);
+        figma.ui.postMessage({
+          type: 'storage-response',
+          id: msg.id,
+          value: null,
+          error: error instanceof Error ? error.message : 'Storage error',
+        } as StorageResponse);
+      }
+      break;
+    }
+    case 'storage-set': {
+      try {
+        await figma.clientStorage.setAsync(msg.key, msg.value);
+        figma.ui.postMessage({
+          type: 'storage-response',
+          id: msg.id,
+          value: msg.value,
+        } as StorageResponse);
+      } catch (error) {
+        figma.ui.postMessage({
+          type: 'storage-response',
+          id: msg.id,
+          value: null,
+          error: error instanceof Error ? error.message : 'Storage error',
+        } as StorageResponse);
+      }
+      break;
+    }
+    case 'storage-remove': {
+      try {
+        await figma.clientStorage.deleteAsync(msg.key);
+        figma.ui.postMessage({
+          type: 'storage-response',
+          id: msg.id,
+          value: null,
+        } as StorageResponse);
+      } catch (error) {
+        figma.ui.postMessage({
+          type: 'storage-response',
+          id: msg.id,
+          value: null,
+          error: error instanceof Error ? error.message : 'Storage error',
+        } as StorageResponse);
+      }
+      break;
+    }
   }
 };
 
@@ -53,7 +145,7 @@ async function placeImageOnCanvas(msg: PlaceImageMessage) {
 
     // Create rectangle with image fill
     const rect = figma.createRectangle();
-    rect.name = msg.name || 'ToyForge Character';
+    rect.name = msg.name || 'CharacterForge Character';
     rect.resize(msg.width || width, msg.height || height);
 
     // Apply image as fill

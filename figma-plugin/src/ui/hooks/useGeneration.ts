@@ -1,18 +1,19 @@
 /**
- * ToyForge Figma Plugin - Generation Hook
+ * CharacterForge Figma Plugin - Generation Hook
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { CharacterConfig, GenerationState, HistoryItem } from '../types';
 import { generateCharacter, fetchImageAsBytes } from '../services/supabase';
 import { STORAGE_KEYS, MAX_HISTORY_ITEMS } from '../constants';
+import { getStorageItem, setStorageItem, removeStorageItem } from '../utils/storage';
 
 // Helper to get config name for canvas
 function getCharacterName(config: CharacterConfig): string {
   const gender = config.gender === 'male' ? 'Boy' : 'Girl';
   const age = config.ageGroup || 'teen';
   const ageLabel = age.charAt(0).toUpperCase() + age.slice(1).replace('_', ' ');
-  return `ToyForge ${ageLabel} ${gender}`;
+  return `CharacterForge ${ageLabel} ${gender}`;
 }
 
 // Post message to Figma
@@ -25,15 +26,23 @@ export function useGeneration() {
     status: 'idle',
     message: '',
   });
-  const [history, setHistory] = useState<HistoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.HISTORY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [lastGeneratedImage, setLastGeneratedImage] = useState<string | null>(null);
+
+  // Load history from storage on mount
+  useEffect(() => {
+    getStorageItem(STORAGE_KEYS.HISTORY).then((saved) => {
+      if (saved) {
+        try {
+          setHistory(JSON.parse(saved));
+        } catch {
+          // Invalid JSON, use empty array
+        }
+      }
+    }).catch(() => {
+      // Ignore errors
+    });
+  }, []);
 
   // Generate and place on canvas
   const generate = useCallback(async (config: CharacterConfig): Promise<{ success: boolean; error?: string }> => {
@@ -83,11 +92,9 @@ export function useGeneration() {
 
       setHistory(prev => {
         const newHistory = [historyItem, ...prev].slice(0, MAX_HISTORY_ITEMS);
-        try {
-          localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(newHistory));
-        } catch {
+        setStorageItem(STORAGE_KEYS.HISTORY, JSON.stringify(newHistory)).catch(() => {
           // Ignore storage errors
-        }
+        });
         return newHistory;
       });
 
@@ -127,11 +134,9 @@ export function useGeneration() {
   // Clear history
   const clearHistory = useCallback(() => {
     setHistory([]);
-    try {
-      localStorage.removeItem(STORAGE_KEYS.HISTORY);
-    } catch {
+    removeStorageItem(STORAGE_KEYS.HISTORY).catch(() => {
       // Ignore
-    }
+    });
   }, []);
 
   // Reset state

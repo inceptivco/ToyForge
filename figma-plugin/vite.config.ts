@@ -4,7 +4,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 import { resolve } from 'path';
 import { rename } from 'fs/promises';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     viteSingleFile(),
@@ -37,5 +37,6 @@ export default defineConfig({
   },
   define: {
     'process.env': {},
+    'import.meta.env.DEV': JSON.stringify(mode === 'development'),
   },
-});
+}));

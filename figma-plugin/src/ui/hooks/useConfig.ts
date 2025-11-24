@@ -1,20 +1,31 @@
 /**
- * ToyForge Figma Plugin - Config Hook
+ * CharacterForge Figma Plugin - Config Hook
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { CharacterConfig, Gender } from '../types';
 import { DEFAULT_CONFIG, HAIR_STYLES, CLOTHING_ITEMS, STORAGE_KEYS, SKIN_TONES, HAIR_COLORS, CLOTHING_COLORS, EYE_COLORS, ACCESSORIES } from '../constants';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 
 export function useConfig() {
-  const [config, setConfig] = useState<CharacterConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.CONFIG);
-      return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-    } catch {
-      return DEFAULT_CONFIG;
-    }
-  });
+  const [config, setConfig] = useState<CharacterConfig>(DEFAULT_CONFIG);
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
+
+  // Load config from storage on mount
+  useEffect(() => {
+    getStorageItem(STORAGE_KEYS.CONFIG).then((saved) => {
+      if (saved) {
+        try {
+          setConfig(JSON.parse(saved));
+        } catch {
+          // Invalid JSON, use default
+        }
+      }
+      setIsConfigLoaded(true);
+    }).catch(() => {
+      setIsConfigLoaded(true);
+    });
+  }, []);
 
   // Filter assets based on gender
   const availableHairStyles = useMemo(
@@ -31,11 +42,9 @@ export function useConfig() {
   const updateConfig = useCallback((updates: Partial<CharacterConfig>) => {
     setConfig(prev => {
       const newConfig = { ...prev, ...updates };
-      try {
-        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig));
-      } catch {
+      setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig)).catch(() => {
         // Ignore storage errors
-      }
+      });
       return newConfig;
     });
   }, []);
@@ -60,11 +69,9 @@ export function useConfig() {
         clothing: newClothing,
       } as CharacterConfig;
 
-      try {
-        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig));
-      } catch {
+      setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig)).catch(() => {
         // Ignore
-      }
+      });
 
       return newConfig;
     });
@@ -92,21 +99,17 @@ export function useConfig() {
     };
 
     setConfig(newConfig);
-    try {
-      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig));
-    } catch {
+    setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig)).catch(() => {
       // Ignore
-    }
+    });
   }, []);
 
   // Reset to defaults
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG);
-    try {
-      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
-    } catch {
+    setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG)).catch(() => {
       // Ignore
-    }
+    });
   }, []);
 
   return {

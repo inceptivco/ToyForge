@@ -1,44 +1,67 @@
 /**
- * ToyForge Figma Plugin - Supabase Service
+ * CharacterForge Figma Plugin - Supabase Service
  */
 
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import type { UserProfile, CharacterConfig } from '../types';
 import { STORAGE_KEYS } from '../constants';
+import { figmaStorageAdapter } from '../utils/storage';
 
 // Supabase configuration
-const SUPABASE_URL = 'https://qfbjiclgpqwrljeddnyy.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmYmppY2xncHF3cmxqZWRkbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMjcyNDksImV4cCI6MjA2MzYwMzI0OX0.bnKmxR44znJ1qaMkPSkNpHqHsAt4Z0RVo2kH5tpGdXI';
+// SECURITY NOTE: The anon key is safe to expose in client-side code (like this Figma plugin).
+// Supabase security relies on Row Level Security (RLS) policies, not on hiding the anon key.
+// All sensitive operations are protected by RLS policies that ensure users can only access
+// their own data. The anon key is designed to be public - it's the RLS policies that protect your data.
+const SUPABASE_URL = 'https://mnxzykltetirdcnxugcl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ueHp5a2x0ZXRpcmRjbnh1Z2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1OTMxMTQsImV4cCI6MjA3OTE2OTExNH0.OSQGq3p5iGX2Eoon-Jo1hnie5IMhxkVKTQ5CBaaXeUQ';
 
-// The main ToyForge app URL for auth callbacks
+// The main CharacterForge app URL for auth callbacks
 // This page will handle the magic link and store tokens for the plugin to retrieve
-const AUTH_CALLBACK_BASE = 'https://toyforge.app';
+// Use localhost for development, production URL for production builds
+const AUTH_CALLBACK_BASE = import.meta.env.DEV 
+  ? 'http://localhost:3000'
+  : 'https://characterforge.app';
 
-// Create Supabase client
+// Create Supabase client with persistent session storage using Figma's clientStorage API
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false, // Disable for Figma plugin
     storage: {
-      getItem: (key: string) => {
+      getItem: async (key: string) => {
         try {
-          return localStorage.getItem(key);
-        } catch {
+          const value = await figmaStorageAdapter.getItem(key);
+          // Log session restoration for debugging
+          if (key.includes('auth-token')) {
+            console.log('Restoring session from Figma storage:', key, value ? 'Found' : 'Not found');
+          }
+          return value;
+        } catch (error) {
+          console.error('Error reading from Figma storage:', error);
           return null;
         }
       },
-      setItem: (key: string, value: string) => {
+      setItem: async (key: string, value: string) => {
         try {
-          localStorage.setItem(key, value);
-        } catch {
+          await figmaStorageAdapter.setItem(key, value);
+          // Log session save for debugging
+          if (key.includes('auth-token')) {
+            console.log('Saving session to Figma storage:', key);
+          }
+        } catch (error) {
+          console.error('Error writing to Figma storage:', error);
           // Ignore storage errors in plugin context
         }
       },
-      removeItem: (key: string) => {
+      removeItem: async (key: string) => {
         try {
-          localStorage.removeItem(key);
-        } catch {
+          await figmaStorageAdapter.removeItem(key);
+          if (key.includes('auth-token')) {
+            console.log('Removed session from Figma storage:', key);
+          }
+        } catch (error) {
+          console.error('Error removing from Figma storage:', error);
           // Ignore storage errors in plugin context
         }
       },
@@ -100,7 +123,7 @@ export async function initiateMagicLink(email: string): Promise<{ authCode?: str
 
   // Store pending auth info locally
   try {
-    localStorage.setItem(STORAGE_KEYS.AUTH_SESSION + '_pending', JSON.stringify({
+    await figmaStorageAdapter.setItem(STORAGE_KEYS.AUTH_SESSION + '_pending', JSON.stringify({
       authCode,
       email,
       timestamp: Date.now(),
@@ -109,18 +132,23 @@ export async function initiateMagicLink(email: string): Promise<{ authCode?: str
     // Continue even if storage fails
   }
 
+  const redirectUrl = `${AUTH_CALLBACK_BASE}/figma-auth?code=${authCode}`;
+  console.log('Sending magic link with redirect URL:', redirectUrl);
+  console.log('Auth code:', authCode);
+  console.log('AUTH_CALLBACK_BASE:', AUTH_CALLBACK_BASE);
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       // Redirect to the main app which will handle the auth callback
       // The callback page will display the auth code for the user to verify
-      emailRedirectTo: `${AUTH_CALLBACK_BASE}/figma-auth?code=${authCode}`,
+      emailRedirectTo: redirectUrl,
     },
   });
 
   if (error) {
     try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+      await figmaStorageAdapter.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
     } catch {
       // Ignore
     }
@@ -174,7 +202,7 @@ export async function pollForAuthCompletion(authCode: string): Promise<{
 
     // Clean up pending auth
     try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+      await figmaStorageAdapter.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
     } catch {
       // Ignore
     }
@@ -187,11 +215,11 @@ export async function pollForAuthCompletion(authCode: string): Promise<{
 }
 
 /**
- * Get pending auth info from localStorage
+ * Get pending auth info from storage
  */
-export function getPendingAuth(): { authCode: string; email: string; timestamp: number } | null {
+export async function getPendingAuth(): Promise<{ authCode: string; email: string; timestamp: number } | null> {
   try {
-    const pending = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    const pending = await figmaStorageAdapter.getItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
     if (pending) {
       return JSON.parse(pending);
     }
@@ -204,9 +232,9 @@ export function getPendingAuth(): { authCode: string; email: string; timestamp: 
 /**
  * Clear pending auth
  */
-export function clearPendingAuth(): void {
+export async function clearPendingAuth(): Promise<void> {
   try {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    await figmaStorageAdapter.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
   } catch {
     // Ignore
   }
@@ -230,7 +258,7 @@ export async function setSessionFromTokens(
     }
 
     // Clear any pending auth
-    clearPendingAuth();
+    await clearPendingAuth();
 
     return {};
   } catch (err) {
@@ -244,8 +272,8 @@ export async function setSessionFromTokens(
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   try {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
-    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    await figmaStorageAdapter.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    await figmaStorageAdapter.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
   } catch {
     // Ignore
   }
@@ -292,21 +320,58 @@ export async function createCheckout(
     return { error: 'Please sign in first' };
   }
 
+  console.log('[createCheckout] Creating checkout with options:', options);
+  console.log('[createCheckout] Session exists:', !!session, 'User ID:', session.user.id);
+
   try {
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: options,
+    // Use manual fetch to ensure Authorization header is set correctly
+    const functionUrl = `${SUPABASE_URL}/functions/v1/create-checkout`;
+    console.log('[createCheckout] Calling function URL:', functionUrl);
+
+    // For Figma plugin, redirect to the main app after successful payment
+    // The webhook will update credits, and user can return to plugin
+    const successUrl = `${AUTH_CALLBACK_BASE}/app?success=true&source=figma`;
+    const cancelUrl = `${AUTH_CALLBACK_BASE}/app?canceled=true&source=figma`;
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        ...options,
+        successUrl,
+        cancelUrl,
+      }),
     });
 
-    if (error) {
-      return { error: error.message || 'Failed to create checkout' };
+    console.log('[createCheckout] Response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[createCheckout] Error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || `HTTP ${response.status}` };
+      }
+      return { error: errorData.message || `HTTP ${response.status}: ${response.statusText}` };
     }
 
+    const data = await response.json();
+    console.log('[createCheckout] Response data:', data);
+
     if (!data?.url) {
+      console.error('[createCheckout] No URL in response:', data);
       return { error: 'No checkout URL returned' };
     }
 
+    console.log('[createCheckout] Checkout URL received:', data.url);
     return { url: data.url };
   } catch (err) {
+    console.error('[createCheckout] Exception:', err);
     return { error: err instanceof Error ? err.message : 'Checkout failed' };
   }
 }

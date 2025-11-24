@@ -20,54 +20,126 @@ export const FigmaAuthCallback: React.FC = () => {
   const authCode = searchParams.get('code');
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Get the session that was established by the magic link
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (!authCode) {
+      // No auth code - this is a regular sign in, just show success
+      setStatus('success');
+      return;
+    }
 
-        if (sessionError) {
-          throw new Error(sessionError.message);
-        }
+    let hasProcessed = false;
 
-        if (!session) {
-          throw new Error('No session found. Please try signing in again.');
-        }
+    // Listen for auth state changes - this fires when Supabase processes the URL hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Only process once
+      if (hasProcessed) return;
 
-        if (!authCode) {
-          // No auth code - this is a regular sign in, just show success
+      if (event === 'SIGNED_IN' && session) {
+        hasProcessed = true;
+        
+        try {
+          console.log('Session established, storing tokens for code:', authCode);
+          console.log('User ID:', session.user.id);
+
+          // Store the tokens in the figma_auth_codes table for the plugin to retrieve
+          const { error: insertError, data } = await supabase
+            .from('figma_auth_codes')
+            .upsert({
+              code: authCode,
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+              user_id: session.user.id,
+              expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
+              used: false,
+            }, {
+              onConflict: 'code',
+            })
+            .select();
+
+          if (insertError) {
+            console.error('Failed to store auth code:', insertError);
+            console.error('Insert error details:', JSON.stringify(insertError, null, 2));
+            console.error('User ID:', session.user.id);
+            console.error('Code:', authCode);
+            setError(`Failed to store auth code: ${insertError.message} (Code: ${insertError.code})`);
+            setStatus('error');
+            return;
+          }
+
+          console.log('Successfully stored auth code:', data);
           setStatus('success');
-          return;
+        } catch (err) {
+          console.error('Auth callback error:', err);
+          setError(err instanceof Error ? err.message : 'Authentication failed');
+          setStatus('error');
         }
+      }
+    });
 
-        // Store the tokens in the figma_auth_codes table for the plugin to retrieve
-        const { error: insertError } = await supabase
-          .from('figma_auth_codes')
-          .upsert({
-            code: authCode,
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            user_id: session.user.id,
-            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
-            used: false,
-          }, {
-            onConflict: 'code',
-          });
+    // Also try to get session immediately in case it's already available
+    supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        return;
+      }
 
-        if (insertError) {
-          console.error('Failed to store auth code:', insertError);
-          // If the table doesn't exist, show a message but still consider it success
-          // The plugin will fall back to showing "return to Figma" instructions
-        }
+      if (session && !hasProcessed) {
+        // Trigger the auth state change handler manually
+        hasProcessed = true;
+        supabase.auth.onAuthStateChange((event, sess) => {
+          if (event === 'SIGNED_IN' && sess) {
+            // This will be handled above
+          }
+        });
+        
+        // Process immediately
+        (async () => {
+          try {
+            console.log('Session already available, storing tokens for code:', authCode);
+            const { error: insertError, data } = await supabase
+              .from('figma_auth_codes')
+              .upsert({
+                code: authCode,
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+                user_id: session.user.id,
+                expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+                used: false,
+              }, {
+                onConflict: 'code',
+              })
+              .select();
 
-        setStatus('success');
-      } catch (err) {
-        console.error('Auth callback error:', err);
-        setError(err instanceof Error ? err.message : 'Authentication failed');
+            if (insertError) {
+              console.error('Failed to store auth code:', insertError);
+              setError(`Failed to store auth code: ${insertError.message}`);
+              setStatus('error');
+              return;
+            }
+
+            console.log('Successfully stored auth code:', data);
+            setStatus('success');
+          } catch (err) {
+            console.error('Auth callback error:', err);
+            setError(err instanceof Error ? err.message : 'Authentication failed');
+            setStatus('error');
+          }
+        })();
+      }
+    });
+
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      if (!hasProcessed) {
+        console.error('Timeout waiting for session');
+        setError('Session timeout. Please try signing in again.');
         setStatus('error');
       }
-    };
+    }, 15000); // 15 second timeout
 
-    handleCallback();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [authCode]);
 
   return (
@@ -112,7 +184,7 @@ export const FigmaAuthCallback: React.FC = () => {
               </>
             ) : (
               <p className="text-slate-600">
-                You can now close this tab and return to ToyForge.
+                You can now close this tab and return to CharacterForge.
               </p>
             )}
           </>
