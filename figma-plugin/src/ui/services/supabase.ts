@@ -131,8 +131,8 @@ export async function initiateMagicLink(email: string): Promise<{ authCode?: str
 }
 
 /**
- * Poll for auth completion by checking the figma_auth_codes table
- * Returns success when tokens are found and session is established
+ * Poll for auth completion using secure database function
+ * Uses get_figma_auth_tokens() to prevent bulk token exfiltration
  */
 export async function pollForAuthCompletion(authCode: string): Promise<{
   success: boolean;
@@ -140,40 +140,37 @@ export async function pollForAuthCompletion(authCode: string): Promise<{
   error?: string
 }> {
   try {
-    // Query the figma_auth_codes table for this code
+    // Use the secure function instead of direct table access
+    // This prevents bulk token exfiltration - only returns data for exact code match
     const { data, error } = await supabase
-      .from('figma_auth_codes')
-      .select('access_token, refresh_token')
-      .eq('code', authCode)
-      .eq('used', false)
-      .maybeSingle();
+      .rpc('get_figma_auth_tokens', { p_code: authCode });
 
     if (error) {
       console.error('Poll error:', error);
-      // Table might not exist yet, return pending
+      // Function might not exist yet, return pending
       return { success: false, pending: true };
     }
 
-    if (!data || !data.access_token) {
+    // data is an array from the function
+    if (!data || data.length === 0 || !data[0]?.access_token) {
       // Auth not yet completed
       return { success: false, pending: true };
     }
 
+    const tokens = data[0];
+
     // Found auth data - establish session
     const { error: sessionError } = await supabase.auth.setSession({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
     });
 
     if (sessionError) {
       return { success: false, error: sessionError.message };
     }
 
-    // Mark the code as used
-    await supabase
-      .from('figma_auth_codes')
-      .update({ used: true })
-      .eq('code', authCode);
+    // Mark the code as used via secure function
+    await supabase.rpc('mark_figma_auth_code_used', { p_code: authCode });
 
     // Clean up pending auth
     try {
