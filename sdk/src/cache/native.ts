@@ -253,19 +253,19 @@ export class NativeCacheManager implements CacheManager {
     // Wait for initialization to complete
     await this.initPromise;
 
+    // React Native cannot directly cache Blobs without conversion
+    // Blobs would need to be converted to base64 or fetched as data URLs
+    if (typeof data !== 'string') {
+      cacheLogger.warn('Blob caching not supported in React Native. Use URL strings instead.');
+      throw new Error('Blob caching not supported in React Native. Please provide a URL string instead.');
+    }
+
     try {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
       const fileUri = this.cacheDir + fileName;
 
-      if (typeof data === 'string') {
-        // Download from URL
-        await this.fs.downloadAsync(data, fileUri);
-      } else {
-        // For Blob, we would need to convert to base64 or use other methods
-        // This is a simplified implementation
-        cacheLogger.warn('Blob caching not fully implemented for React Native');
-        return typeof data === 'string' ? data : '';
-      }
+      // Download from URL
+      await this.fs.downloadAsync(data, fileUri);
 
       // Save metadata
       this.metadata[key] = {
@@ -279,8 +279,8 @@ export class NativeCacheManager implements CacheManager {
       return fileUri;
     } catch (error) {
       cacheLogger.warn('Cache storage failed', { error });
-      if (typeof data === 'string') return data;
-      throw error;
+      // Return original URL as fallback
+      return data;
     }
   }
 
