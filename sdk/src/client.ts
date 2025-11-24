@@ -238,11 +238,16 @@ export class CharacterForgeClient {
     onStatusUpdate?.('Calling AI Cloud...');
     const imageUrl = await this.callApiWithRetry(characterConfig);
 
-    // Cache the result
+    // Cache the result and return local cached URL if available
     if (shouldCache && imageUrl) {
-      await this.cacheResult(cacheKey, imageUrl, onStatusUpdate);
+      const cachedUrl = await this.cacheResult(cacheKey, imageUrl, onStatusUpdate);
+      if (cachedUrl) {
+        sdkLogger.debug('Returning local cached URL');
+        return cachedUrl;
+      }
     }
 
+    // Fallback to remote URL if caching failed or was disabled
     return imageUrl;
   }
 
