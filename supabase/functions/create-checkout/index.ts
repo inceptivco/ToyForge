@@ -1,48 +1,53 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@^14.0.0";
+import {
+    handleCors,
+    jsonResponse,
+    errorResponse,
+    extractBearerToken,
+    authenticateWithToken,
+    isAuthError,
+    HTTP_STATUS,
+} from '../_shared/index.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
     apiVersion: '2023-10-16',
     httpClient: Stripe.createFetchHttpClient(),
 });
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 serve(async (req) => {
     console.log(`[create-checkout] ${req.method} request received`);
     
-    if (req.method === 'OPTIONS') {
+    // Handle CORS preflight using shared utility
+    const corsResponse = handleCors(req);
+    if (corsResponse) {
         console.log('[create-checkout] OPTIONS request, returning CORS headers');
-        return new Response('ok', { headers: corsHeaders });
+        return corsResponse;
     }
 
     try {
         console.log('[create-checkout] Starting checkout session creation');
         
-        // 1. Authenticate User
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
+        // 1. Authenticate User using shared utility
+        const token = extractBearerToken(req);
+        if (!token) {
             console.error('[create-checkout] Missing Authorization header');
-            throw new Error('Missing Authorization header');
+            return errorResponse('Missing Authorization header', HTTP_STATUS.UNAUTHORIZED);
         }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-
-        if (error || !user) {
-            console.error('[create-checkout] Authentication failed:', error?.message || 'No user');
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const authResult = await authenticateWithToken(token, supabase);
+        if (isAuthError(authResult)) {
+            console.error('[create-checkout] Authentication failed:', authResult.message);
+            return errorResponse(authResult.message, authResult.statusCode);
         }
-
-        console.log(`[create-checkout] User authenticated: ${user.id}`);
+        
+        const { userId } = authResult;
+        console.log(`[create-checkout] User authenticated: ${userId}`);
 
         // 2. Parse Request
         const body = await req.json();
@@ -143,26 +148,21 @@ serve(async (req) => {
             cancel_url: type === 'api'
                 ? `${baseUrl}/developer/billing?canceled=true`
                 : `${baseUrl}/app?canceled=true`,
-            client_reference_id: user.id,
+            client_reference_id: userId,
             metadata: {
                 credits: credits.toString(),
-                user_id: user.id,
+                user_id: userId,
                 credit_type: type, // Important for webhook to know which balance to update
             },
         });
 
         console.log(`[create-checkout] Stripe session created: ${session.id}, URL: ${session.url}`);
 
-        return new Response(JSON.stringify({ url: session.url }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ url: session.url });
 
     } catch (error: any) {
         console.error('[create-checkout] Error:', error);
         console.error('[create-checkout] Error stack:', error.stack);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return errorResponse(error.message, HTTP_STATUS.BAD_REQUEST);
     }
 });

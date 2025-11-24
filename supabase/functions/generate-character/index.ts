@@ -1,7 +1,16 @@
 import { GoogleGenAI, Modality } from "npm:@google/genai@^1.30.0";
 import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
 import { Buffer } from "node:buffer";
+import {
+  handleCors,
+  jsonResponse,
+  errorResponse,
+  authenticateRequest,
+  isAuthError,
+  sha256Hash,
+  validateCharacterConfig,
+  HTTP_STATUS,
+} from '../_shared/index.ts';
 
 // Fix: Declare Deno global
 declare const Deno: any;
@@ -60,18 +69,7 @@ const CONFIG = {
   GREEN_SCREEN_COLOR: '#00FF00' as const,
 } as const;
 
-const HTTP_STATUS = {
-  OK: 200,
-  UNAUTHORIZED: 401,
-  PAYMENT_REQUIRED: 402,
-  FAILED_DEPENDENCY: 424,
-  INTERNAL_ERROR: 500,
-} as const;
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-} as const;
+// HTTP_STATUS now imported from _shared
 
 const STYLE_PROMPT = `
 Render a high-end collectible vinyl toy figure. Direct front view. Facing the camera straight on. Symmetrical upper body portrait.
@@ -196,13 +194,7 @@ function base64ToBuffer(base64: string): Uint8Array {
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
 
-async function sha256Hash(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+// sha256Hash now imported from _shared/auth
 
 async function hashConfig(config: CharacterConfig): Promise<string> {
   // Sort keys to ensure deterministic hash, excluding cache
@@ -258,95 +250,7 @@ function generateRefId(prefix: string): string {
 // ============================================================================
 // Authentication
 // ============================================================================
-
-function extractApiKey(req: Request): string | null {
-  const apiKeyHeader = req.headers.get('x-api-key');
-  const authHeader = req.headers.get('Authorization');
-  
-  if (apiKeyHeader) {
-    return apiKeyHeader.replace(/^Bearer\s+/i, '').trim();
-  }
-  
-  if (authHeader) {
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (token.startsWith('sk_')) {
-      logger.warn('API key in Authorization header. Use x-api-key instead.');
-      return token;
-    }
-  }
-  
-  return null;
-}
-
-async function authenticateWithApiKey(
-  apiKey: string,
-  supabase: SupabaseClient
-): Promise<AuthResult> {
-  logger.info('Authenticating with API key:', apiKey.substring(0, 10) + '...');
-  
-  const keyHash = await sha256Hash(apiKey);
-  
-  const { data: apiKeyData, error: apiKeyError } = await supabase
-    .from('api_keys')
-    .select('id, user_id, deleted_at')
-    .eq('key_hash', keyHash)
-    .single();
-  
-  if (apiKeyError || !apiKeyData) {
-    throw new Error('Invalid or inactive API key');
-  }
-  
-  if (apiKeyData.deleted_at) {
-    throw new Error('This API key has been revoked. Please create a new key.');
-  }
-  
-  // Update last_used_at
-  await supabase
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', apiKeyData.id);
-  
-  return { 
-    userId: apiKeyData.user_id, 
-    apiKeyId: apiKeyData.id, 
-    isApiRequest: true 
-  };
-}
-
-async function authenticateWithToken(
-  token: string,
-  supabase: SupabaseClient
-): Promise<AuthResult> {
-  logger.info('Authenticating with Bearer token');
-  
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    throw new Error('Invalid authentication token');
-  }
-  
-  return { 
-    userId: user.id, 
-    apiKeyId: null, 
-    isApiRequest: false 
-  };
-}
-
-async function authenticateUser(req: Request, supabase: SupabaseClient): Promise<AuthResult> {
-  const apiKey = extractApiKey(req);
-  
-  if (apiKey) {
-    return authenticateWithApiKey(apiKey, supabase);
-  }
-  
-  const authHeader = req.headers.get('Authorization');
-  if (authHeader) {
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    return authenticateWithToken(token, supabase);
-  }
-  
-  throw new Error('No authentication provided. Please provide either an API key (x-api-key header) or Bearer token (Authorization header)');
-}
+// Authentication functions now imported from _shared/auth
 
 // ============================================================================
 // Credit Management
@@ -687,13 +591,7 @@ function handleError(error: any): Response {
     error.message = "System Error: The AI provider requires a billed account. Please contact the developer.";
   }
   
-  return new Response(
-    JSON.stringify({ error: error.message || "Internal Server Error" }), 
-    {
-      status,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-    }
-  );
+  return errorResponse(error.message || "Internal Server Error", status);
 }
 
 // ============================================================================
@@ -705,11 +603,23 @@ async function generateCharacter(req: Request): Promise<Response> {
   const supabase = createClient(env.supabaseUrl, env.supabaseServiceKey);
   const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
 
-  const { userId, apiKeyId, isApiRequest } = await authenticateUser(req, supabase);
+  // Authenticate using shared auth utilities
+  const authResult = await authenticateRequest(req, supabase);
+  if (isAuthError(authResult)) {
+    return errorResponse(authResult.message, authResult.statusCode);
+  }
+  
+  const { userId, apiKeyId, isApiRequest } = authResult;
   logger.info('Authenticated user:', userId, 'API Key:', apiKeyId || 'none');
 
   const config: CharacterConfig = await req.json();
   logger.info('Received config:', JSON.stringify(config, null, 2));
+  
+  // Validate config using shared validation
+  const validationResult = validateCharacterConfig(config);
+  if (!validationResult.success) {
+    return errorResponse(validationResult.error || 'Invalid configuration', HTTP_STATUS.BAD_REQUEST);
+  }
 
   const creditType: CreditType = isApiRequest ? 'api' : 'app';
 
@@ -736,12 +646,7 @@ async function generateCharacter(req: Request): Promise<Response> {
 
     logger.info('Generation complete. Image URL:', imageUrl);
 
-    return new Response(
-      JSON.stringify({ image: imageUrl }), 
-      {
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-      }
-    );
+    return jsonResponse({ image: imageUrl });
 
   } catch (genError: any) {
     logger.error('Generation Failed, Refunding:', genError);
@@ -751,9 +656,9 @@ async function generateCharacter(req: Request): Promise<Response> {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
-  }
+  // Handle CORS preflight using shared utility
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     return await generateCharacter(req);

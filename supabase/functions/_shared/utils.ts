@@ -6,6 +6,10 @@
  */
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { CORS_HEADERS, handleCors, jsonResponse, errorResponse } from './cors.ts';
+
+// Re-export CORS utilities for convenience
+export { CORS_HEADERS, handleCors, jsonResponse, errorResponse };
 
 // =============================================================================
 // Types
@@ -30,12 +34,6 @@ export interface AuthResult {
 // =============================================================================
 // Constants
 // =============================================================================
-
-export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, DELETE, PUT',
-} as const;
 
 export const HTTP_STATUS = {
   OK: 200,
@@ -101,41 +99,10 @@ export class RateLimitError extends FunctionError {
 
 /**
  * Create a success response with proper headers
+ * Alias for jsonResponse for backward compatibility
  */
 export function successResponse<T>(data: T, status: number = HTTP_STATUS.OK): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      ...CORS_HEADERS,
-      'Content-Type': 'application/json',
-    },
-  });
-}
-
-/**
- * Create an error response with proper headers
- */
-export function errorResponse(
-  message: string,
-  status: number = HTTP_STATUS.INTERNAL_ERROR
-): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: {
-      ...CORS_HEADERS,
-      'Content-Type': 'application/json',
-    },
-  });
-}
-
-/**
- * Handle CORS preflight requests
- */
-export function handleCors(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
-  }
-  return null;
+  return jsonResponse(data, status);
 }
 
 // =============================================================================
