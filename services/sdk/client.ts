@@ -19,6 +19,13 @@ import {
   RateLimitError,
 } from '../../utils/errors';
 
+// Re-export error classes for convenience
+export {
+  AuthenticationError,
+  InsufficientCreditsError,
+  GenerationError as CharacterForgeError,
+};
+
 // ============================================================================
 // Constants
 // ============================================================================

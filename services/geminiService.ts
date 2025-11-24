@@ -56,9 +56,7 @@ export async function generateCharacterPipeline(
 
   try {
     // Delegate to the SDK client
-    const imageUrl = await characterForgeClient.generate(config, {
-      onProgress: onStatusUpdate,
-    });
+    const imageUrl = await characterForgeClient.generate(config, onStatusUpdate);
 
     onStatusUpdate('Generation complete!');
     return imageUrl;
@@ -72,7 +70,7 @@ export async function generateCharacterPipeline(
 
     // Wrap unknown errors
     const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    throw new CharacterForgeError(message, 'UNKNOWN_ERROR', false);
+    throw new CharacterForgeError(message);
   }
 }
 
