@@ -20,7 +20,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                         <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center text-white transform rotate-3 shadow-lg shadow-red-500/30">
                             <Bot size={20} strokeWidth={2.5} />
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-slate-900">CharacterSmith</span>
+                        <span className="text-lg font-bold tracking-tight text-slate-900">CharacterForge</span>
                     </div>
                     <div className="flex items-center gap-8">
                         <div className="hidden md:flex items-center gap-6">
@@ -167,7 +167,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600">
                                     <Bot size={20} />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900">CharacterSmith App</h3>
+                                <h3 className="text-xl font-bold text-slate-900">CharacterForge App</h3>
                             </div>
                             <div className="mb-6">
                                 <div className="flex items-baseline">
@@ -304,7 +304,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                         <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center text-white">
                             <Bot size={14} strokeWidth={3} />
                         </div>
-                        <span className="font-bold text-slate-900">CharacterSmith</span>
+                        <span className="font-bold text-slate-900">CharacterForge</span>
                         <span className="text-slate-400 text-sm">© 2025</span>
                     </div>
                     <div className="flex gap-8 text-sm font-medium text-slate-500">

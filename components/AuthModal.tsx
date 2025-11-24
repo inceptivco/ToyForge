@@ -58,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                 <div className="p-8">
                     <div className="text-center mb-8">
-                        <h2 className="text-2xl font-bold text-slate-900">Welcome to CharacterSmith</h2>
+                        <h2 className="text-2xl font-bold text-slate-900">Welcome to CharacterForge</h2>
                         <p className="text-slate-500 mt-2">
                             {isSuccess ? 'Magic link sent!' : 'Sign in to save your creations and get free credits.'}
                         </p>

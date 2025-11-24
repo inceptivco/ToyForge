@@ -2,7 +2,7 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# CharacterSmith
+# CharacterForge
 
 AI-powered 3D character generation platform with React components and REST API.
 
@@ -49,23 +49,23 @@ AI-powered 3D character generation platform with React components and REST API.
 
 ### React
 ```bash
-npm install @charactersmith/react
+npm install @characterforge/react
 ```
 
 ### React Native
 ```bash
-npm install @charactersmith/react-native
+npm install @characterforge/react-native
 ```
 
 ## Quick Example
 
 ```tsx
-import { CharacterSmith } from '@charactersmith/react';
+import { CharacterForge } from '@characterforge/react';
 
 export const MyCharacter = () => {
   return (
-    <CharacterSmith
-      apiKey={process.env.CHARACTER_SMITH_KEY}
+    <CharacterForge
+      apiKey={process.env.CHARACTER_FORGE_KEY}
       config={{
         gender: 'female',
         skinTone: 'light',
@@ -80,5 +80,5 @@ export const MyCharacter = () => {
 ## Links
 
 - 📖 [Full Documentation](./DOCUMENTATION.md)
-- 🌐 [Website](https://charactersmith.app)
-- 💬 [Support](mailto:support@charactersmith.app)
+- 🌐 [Website](https://characterforge.app)
+- 💬 [Support](mailto:support@characterforge.app)

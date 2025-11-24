@@ -11,7 +11,7 @@ import type { CacheManager } from '../../types';
 // Constants
 // =============================================================================
 
-const DB_NAME = 'CharacterSmithDB';
+const DB_NAME = 'CharacterForgeDB';
 const STORE_NAME = 'images';
 const DB_VERSION = 2; // Bumped version for schema upgrade
 const MAX_CACHE_SIZE = 100;

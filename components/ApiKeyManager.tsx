@@ -149,7 +149,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
                                 API Keys
                             </h3>
                             <p className="text-sm text-slate-500 mt-1">
-                                Manage keys to access the CharacterSmith API programmatically.
+                                Manage keys to access the CharacterForge API programmatically.
                             </p>
                         </div>
                         <button
@@ -186,7 +186,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="font-mono text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                                        sk_charactersmith_...
+                                        sk_characterforge_...
                                     </div>
                                     <button
                                         onClick={() => deleteKey(key.id)}

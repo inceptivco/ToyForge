@@ -1,5 +1,5 @@
 /**
- * Authentication Context for CharacterSmith
+ * Authentication Context for CharacterForge
  *
  * Provides centralized authentication state management across the application.
  * This eliminates duplicate auth logic in multiple components.

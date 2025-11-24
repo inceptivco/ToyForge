@@ -233,7 +233,7 @@ export const DeveloperDashboard: React.FC = () => {
                             <Bot size={24} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <span className="block leading-none">CharacterSmith</span>
+                            <span className="block leading-none">CharacterForge</span>
                             <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1 inline-block">Developer</span>
                         </div>
                     </Link>
@@ -357,7 +357,7 @@ export const DeveloperDashboard: React.FC = () => {
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-orange-500 flex items-center justify-center">
                                 <Bot className="text-white" size={18} />
                             </div>
-                            <span className="font-bold text-slate-900">CharacterSmith</span>
+                            <span className="font-bold text-slate-900">CharacterForge</span>
                         </div>
                         <button
                             onClick={() => setIsMobileMenuOpen(true)}

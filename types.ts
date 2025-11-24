@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for CharacterSmith
+ * Core Type Definitions for CharacterForge
  *
  * This file contains all shared type definitions used across the application.
  * Using strict union types ensures type safety and enables better IDE support.
@@ -392,7 +392,7 @@ export interface LoadingState {
 // SDK Types
 // =============================================================================
 
-export interface CharacterSmithClientConfig {
+export interface CharacterForgeClientConfig {
   apiKey?: string;
   cache?: boolean;
   baseUrl?: string;

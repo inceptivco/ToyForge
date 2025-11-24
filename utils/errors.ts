@@ -1,5 +1,5 @@
 /**
- * Custom Error Classes for CharacterSmith
+ * Custom Error Classes for CharacterForge
  *
  * These error classes provide consistent error handling across the application
  * with specific error types for different failure scenarios.
