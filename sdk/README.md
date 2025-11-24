@@ -457,7 +457,7 @@ export function CharacterGenerator() {
 ## Support
 
 - 📧 Email: support@characterforge.app
-- 🐛 Issues: [GitHub Issues](https://github.com/characterforge/sdk/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/inceptivco/characterforge-js/sdk/issues)
 - 📖 Documentation: [characterforge.app/docs](https://characterforge.app/docs)
 
 **Note:** This package is published as `characterforge` on npm.

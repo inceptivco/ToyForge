@@ -37,21 +37,18 @@ Your npm package `characterforge` is ready! Here's what was created and what to 
 
 ## 🚀 Next Steps
 
-### 1. Update Base URL
+### 1. Verify Production URL
 
-**IMPORTANT:** Before publishing, update the default API base URL in `src/client.ts`:
+**Before publishing**, verify that the default API base URL in `src/client.ts` points to your **production** environment:
 
 ```typescript
 // Line 32 in src/client.ts
-const DEFAULT_BASE_URL = 'https://YOUR_SUPABASE_PROJECT.supabase.co/functions/v1';
+const DEFAULT_BASE_URL = 'https://mnxzykltetirdcnxugcl.supabase.co/functions/v1';
 ```
 
-Replace `YOUR_SUPABASE_PROJECT` with your actual Supabase project ID.
+This is the CharacterForge production backend. SDK users will automatically connect here with their API keys. They don't need their own Supabase projects.
 
-To find your URL:
-1. Go to Supabase Dashboard
-2. Settings → API
-3. Copy the URL and add `/functions/v1`
+**Note:** If you have a separate production URL from your development environment, update this to production before publishing.
 
 ### 2. Install Dependencies
 
