@@ -1,294 +1,356 @@
 /**
  * CharacterForge SDK Client
  *
- * A robust client for generating character images with proper caching,
- * error handling, and retry logic.
+ * Main client for generating character images with built-in caching,
+ * retry logic, and comprehensive error handling.
  */
 
 import type { CharacterConfig, CacheManager, CharacterForgeClientConfig, GenerateOptions } from '../../types';
 import { supabase } from '../supabase';
 import { WebCacheManager } from './cache';
+import { CacheManager, CharacterForgeClientConfig, GenerationResult } from './types';
+import { sdkLogger } from '../../utils/logger';
+import {
+  ApiError,
+  NetworkError,
+  InsufficientCreditsError,
+  AuthenticationError,
+  GenerationError,
+  RateLimitError,
+} from '../../utils/errors';
 
-// =============================================================================
+// ============================================================================
 // Constants
-// =============================================================================
+// ============================================================================
 
-const DEFAULT_CONFIG: Required<Omit<CharacterForgeClientConfig, 'apiKey'>> = {
-  cache: true,
-  baseUrl: '',
-  timeout: 60000, // 60 seconds
-  retries: 2,
-};
+const DEFAULT_RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+} as const;
 
-const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff delays in ms
+const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
 
-// =============================================================================
-// Error Classes
-// =============================================================================
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
-export class CharacterForgeError extends Error {
-  public readonly code: string;
-  public readonly isRetryable: boolean;
+/**
+ * Generate a stable cache key from configuration
+ * Uses sorted keys to ensure deterministic key generation
+ */
+function generateCacheKey(config: CharacterConfig): string {
+  const sortedKeys = Object.keys(config).sort();
+  const stableObj: Record<string, unknown> = {};
 
-  constructor(message: string, code: string, isRetryable: boolean = false) {
-    super(message);
-    this.name = 'CharacterForgeError';
-    this.code = code;
-    this.isRetryable = isRetryable;
+  for (const key of sortedKeys) {
+    // Exclude non-visual props that shouldn't affect cache
+    if (key === 'cache') continue;
+    stableObj[key] = config[key as keyof CharacterConfig];
   }
+
+  return JSON.stringify(stableObj);
 }
 
-export class AuthenticationError extends CharacterForgeError {
-  constructor(message: string = 'Authentication required') {
-    super(message, 'AUTH_ERROR', false);
-    this.name = 'AuthenticationError';
-  }
+/**
+ * Calculate exponential backoff delay with jitter
+ */
+function calculateBackoffDelay(attempt: number, baseDelay: number, maxDelay: number): number {
+  const exponentialDelay = baseDelay * Math.pow(2, attempt);
+  const jitter = Math.random() * 0.3 * exponentialDelay; // Add up to 30% jitter
+  return Math.min(exponentialDelay + jitter, maxDelay);
 }
 
-export class InsufficientCreditsError extends CharacterForgeError {
-  constructor(message: string = 'Insufficient credits') {
-    super(message, 'INSUFFICIENT_CREDITS', false);
-    this.name = 'InsufficientCreditsError';
-  }
-}
-
-export class GenerationError extends CharacterForgeError {
-  constructor(message: string, isRetryable: boolean = true) {
-    super(message, 'GENERATION_ERROR', isRetryable);
-    this.name = 'GenerationError';
-  }
-}
-
-export class NetworkError extends CharacterForgeError {
-  constructor(message: string = 'Network error') {
-    super(message, 'NETWORK_ERROR', true);
-    this.name = 'NetworkError';
-  }
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-function sleep(ms: number): Promise<void> {
+/**
+ * Wait for a specified duration
+ */
+function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function parseError(error: unknown, data: unknown): CharacterForgeError {
-  // Extract error message from response data
-  let errorMessage = 'An unexpected error occurred';
+/**
+ * Check if an error is retryable based on its type or status code
+ */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof NetworkError) return true;
+  if (error instanceof RateLimitError) return true;
+  if (error instanceof ApiError) return true; // ApiError is only created for retryable status codes
 
-  if (data && typeof data === 'object' && 'error' in data) {
-    const dataError = (data as { error: unknown }).error;
-    if (typeof dataError === 'string') {
-      errorMessage = dataError;
-    }
-  } else if (error && typeof error === 'object' && 'message' in error) {
-    errorMessage = (error as { message: string }).message;
+  // Check for network-related error messages
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('fetch') ||
+      message.includes('failed to fetch')
+    );
   }
 
-  // Classify the error
-  const lowerMessage = errorMessage.toLowerCase();
-
-  if (lowerMessage.includes('logged in') || lowerMessage.includes('authentication')) {
-    return new AuthenticationError(errorMessage);
-  }
-
-  if (lowerMessage.includes('credit') || lowerMessage.includes('insufficient')) {
-    return new InsufficientCreditsError(errorMessage);
-  }
-
-  if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
-    return new NetworkError(errorMessage);
-  }
-
-  return new GenerationError(errorMessage, true);
+  return false;
 }
 
-// =============================================================================
-// Client Class
-// =============================================================================
+/**
+ * Extract HTTP status code from Supabase function error
+ */
+function extractStatusCode(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null;
+
+  // Supabase FunctionsHttpError has a status property
+  const err = error as Record<string, unknown>;
+
+  // Check for status directly on error
+  if (typeof err.status === 'number') return err.status;
+
+  // Check for context.status (Supabase edge function error format)
+  if (err.context && typeof err.context === 'object') {
+    const context = err.context as Record<string, unknown>;
+    if (typeof context.status === 'number') return context.status;
+  }
+
+  return null;
+}
+
+/**
+ * Parse API response error into appropriate error class
+ * Now properly handles HTTP status codes for retry logic
+ */
+function parseApiError(error: unknown, data?: unknown): Error {
+  // Extract status code from error object
+  const statusCode = extractStatusCode(error);
+
+  // Get error message from response data or error object
+  let message = 'An unexpected error occurred';
+
+  if (data && typeof data === 'object' && 'error' in data) {
+    message = (data as { error: string }).error;
+  } else if (error instanceof Error) {
+    message = error.message;
+  }
+
+  const messageLower = message.toLowerCase();
+
+  // Check for specific non-retryable error types first
+  if (messageLower.includes('credits') || messageLower.includes('insufficient') || statusCode === 402) {
+    return new InsufficientCreditsError();
+  }
+
+  if (messageLower.includes('authentication') || messageLower.includes('logged in') ||
+      messageLower.includes('unauthorized') || statusCode === 401) {
+    return new AuthenticationError(message);
+  }
+
+  // Check for rate limiting (429)
+  if (statusCode === 429) {
+    return new RateLimitError();
+  }
+
+  // Check for retryable server errors (5xx) or timeout (408)
+  if (statusCode && RETRYABLE_STATUS_CODES.includes(statusCode)) {
+    return new ApiError(message, statusCode, 'generate-character');
+  }
+
+  // Check for network-related errors
+  if (messageLower.includes('network') || messageLower.includes('fetch') ||
+      messageLower.includes('failed to fetch')) {
+    return new NetworkError(message);
+  }
+
+  // Default to GenerationError for other failures
+  return new GenerationError(message);
+}
+
+// ============================================================================
+// SDK Client Class
+// ============================================================================
 
 export class CharacterForgeClient {
-  private readonly cacheManager: CacheManager;
-  private readonly config: Required<Omit<CharacterForgeClientConfig, 'apiKey'>>;
+  private cacheManager: CacheManager;
+  private config: CharacterForgeClientConfig;
+  private retryConfig: typeof DEFAULT_RETRY_CONFIG;
 
   constructor(config: CharacterForgeClientConfig = {}) {
     this.config = {
-      ...DEFAULT_CONFIG,
+      cache: true, // Default to enabled
       ...config,
     };
 
-    // Initialize cache manager (web by default, can be swapped for React Native)
+    this.retryConfig = DEFAULT_RETRY_CONFIG;
+
+    // In a universal SDK, we'd detect platform here
+    // For now, default to WebCacheManager for browser environment
     this.cacheManager = new WebCacheManager();
+
+    sdkLogger.info('SDK Client initialized', {
+      cacheEnabled: this.config.cache,
+    });
   }
 
   /**
-   * Generates a character image based on the configuration.
-   * Checks local cache first if enabled.
+   * Generate a character image based on the configuration
+   * Includes caching, retry logic, and comprehensive error handling
    */
   async generate(
     characterConfig: CharacterConfig,
-    options: GenerateOptions = {}
+    onStatusUpdate?: (status: string) => void
   ): Promise<string> {
-    const { signal, onProgress } = options;
-
-    // Determine if caching should be used
     const shouldCache = this.config.cache && characterConfig.cache !== false;
-    const cacheKey = this.generateCacheKey(characterConfig);
+    const cacheKey = generateCacheKey(characterConfig);
+
+    sdkLogger.debug('Starting generation', {
+      shouldCache,
+      gender: characterConfig.gender,
+    });
 
     // Check cache first
     if (shouldCache) {
       try {
         const cachedUrl = await this.cacheManager.get(cacheKey);
         if (cachedUrl) {
-          onProgress?.('Retrieved from cache');
+          sdkLogger.info('Cache hit');
+          onStatusUpdate?.('Retrieved from Client Cache!');
           return cachedUrl;
         }
+        sdkLogger.debug('Cache miss');
       } catch (cacheError) {
-        console.warn('[CharacterForgeClient] Cache lookup failed:', cacheError);
+        sdkLogger.warn('Cache lookup failed', { error: cacheError });
+        // Continue with API call on cache failure
       }
     }
 
-    // Make the API request with retries
-    onProgress?.('Generating character...');
-    const imageUrl = await this.executeWithRetry(
-      () => this.callGenerateEndpoint(characterConfig, signal),
-      onProgress
-    );
+    // Call API with retry logic
+    onStatusUpdate?.('Calling AI Cloud...');
+    const imageUrl = await this.callApiWithRetry(characterConfig);
 
     // Cache the result
     if (shouldCache && imageUrl) {
-      try {
-        onProgress?.('Caching result...');
-        await this.cacheManager.set(cacheKey, imageUrl);
-
-        // Return the cached URL for consistency
-        const cachedUrl = await this.cacheManager.get(cacheKey);
-        if (cachedUrl) {
-          return cachedUrl;
-        }
-      } catch (cacheError) {
-        console.warn('[CharacterForgeClient] Cache storage failed:', cacheError);
-      }
+      await this.cacheResult(cacheKey, imageUrl, onStatusUpdate);
     }
 
-    onProgress?.('Generation complete');
     return imageUrl;
   }
 
   /**
-   * Execute a function with retry logic
+   * Call the generation API with retry logic
    */
-  private async executeWithRetry<T>(
-    fn: () => Promise<T>,
-    onProgress?: (status: string) => void
-  ): Promise<T> {
-    let lastError: CharacterForgeError | null = null;
+  private async callApiWithRetry(config: CharacterConfig): Promise<string> {
+    let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt <= this.config.retries; attempt++) {
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
       try {
-        return await fn();
+        sdkLogger.debug('API call attempt', { attempt: attempt + 1 });
+
+        const { data, error } = await supabase.functions.invoke('generate-character', {
+          body: config,
+        });
+
+        // Handle errors
+        if (error || (data && typeof data === 'object' && 'error' in data)) {
+          const parsedError = parseApiError(error, data);
+
+          // Don't retry authentication or credit errors
+          if (parsedError instanceof AuthenticationError ||
+              parsedError instanceof InsufficientCreditsError) {
+            throw parsedError;
+          }
+
+          throw parsedError;
+        }
+
+        if (!data?.image) {
+          throw new GenerationError('No image URL in response');
+        }
+
+        sdkLogger.info('Generation successful', {
+          attempt: attempt + 1,
+        });
+
+        return data.image;
+
       } catch (error) {
-        lastError = error instanceof CharacterForgeError
-          ? error
-          : parseError(error, null);
+        lastError = error instanceof Error ? error : new GenerationError('Unknown error');
 
-        // Don't retry non-retryable errors
-        if (!lastError.isRetryable) {
-          throw lastError;
+        // Check if we should retry
+        if (attempt < this.retryConfig.maxRetries && isRetryableError(error)) {
+          const delayMs = calculateBackoffDelay(
+            attempt,
+            this.retryConfig.baseDelayMs,
+            this.retryConfig.maxDelayMs
+          );
+
+          sdkLogger.warn('Retrying after error', {
+            attempt: attempt + 1,
+            delayMs,
+            error: lastError.message,
+          });
+
+          await delay(delayMs);
+          continue;
         }
 
-        // Don't retry if we've exhausted attempts
-        if (attempt >= this.config.retries) {
-          throw lastError;
-        }
-
-        // Wait before retrying
-        const delay = RETRY_DELAYS[Math.min(attempt, RETRY_DELAYS.length - 1)];
-        onProgress?.(`Retrying in ${delay / 1000}s (attempt ${attempt + 2}/${this.config.retries + 1})...`);
-        await sleep(delay);
+        // No more retries or non-retryable error
+        throw lastError;
       }
     }
 
-    throw lastError || new GenerationError('Max retries exceeded');
+    // Should not reach here, but TypeScript needs this
+    throw lastError || new GenerationError('Generation failed after retries');
   }
 
   /**
-   * Call the generate-character edge function
+   * Cache the generation result
    */
-  private async callGenerateEndpoint(
-    config: CharacterConfig,
-    signal?: AbortSignal
-  ): Promise<string> {
-    // Check for abort before starting
-    if (signal?.aborted) {
-      throw new GenerationError('Request cancelled', false);
+  private async cacheResult(
+    cacheKey: string,
+    imageUrl: string,
+    onStatusUpdate?: (status: string) => void
+  ): Promise<string | null> {
+    try {
+      onStatusUpdate?.('Caching result...');
+      await this.cacheManager.set(cacheKey, imageUrl);
+
+      // Return cached URL for consistency
+      const cachedUrl = await this.cacheManager.get(cacheKey);
+      if (cachedUrl) {
+        sdkLogger.debug('Result cached successfully');
+        return cachedUrl;
+      }
+    } catch (cacheError) {
+      sdkLogger.warn('Failed to cache image', { error: cacheError });
     }
 
-    const { data, error } = await supabase.functions.invoke('generate-character', {
-      body: config,
-    });
-
-    // Check for abort after request
-    if (signal?.aborted) {
-      throw new GenerationError('Request cancelled', false);
-    }
-
-    // Handle errors
-    if (error || (data && typeof data === 'object' && 'error' in data)) {
-      throw parseError(error, data);
-    }
-
-    if (!data?.image) {
-      throw new GenerationError('No image returned from server');
-    }
-
-    return data.image;
+    return null;
   }
 
   /**
-   * Generate a deterministic cache key from the config
-   */
-  private generateCacheKey(config: CharacterConfig): string {
-    // Sort keys and exclude non-visual properties
-    const visualConfig: Partial<CharacterConfig> = {
-      gender: config.gender,
-      skinTone: config.skinTone,
-      hairStyle: config.hairStyle,
-      hairColor: config.hairColor,
-      clothing: config.clothing,
-      clothingColor: config.clothingColor,
-      eyeColor: config.eyeColor,
-      accessories: [...config.accessories].sort(),
-      transparent: config.transparent,
-    };
-
-    return JSON.stringify(visualConfig);
-  }
-
-  /**
-   * Clear all cached images
+   * Clear the local cache
    */
   async clearCache(): Promise<void> {
+    sdkLogger.info('Clearing cache');
     await this.cacheManager.clear();
   }
 
   /**
-   * Get cache statistics (if supported by the cache manager)
+   * Get cache statistics (if supported by cache manager)
    */
-  getCacheStats(): { enabled: boolean } {
-    return {
-      enabled: this.config.cache,
-    };
+  async getCacheStats(): Promise<{ size: number } | null> {
+    // This could be extended to provide more detailed stats
+    return null;
   }
 }
 
-// =============================================================================
+// ============================================================================
 // Singleton Instance
-// =============================================================================
+// ============================================================================
 
 export const characterForgeClient = new CharacterForgeClient();
 
-// Re-export types for convenience
-export type { CharacterConfig, CharacterForgeClientConfig, GenerateOptions };
+// ============================================================================
+// Factory Function for Custom Instances
+// ============================================================================
+
+export function createCharacterForgeClient(
+  config?: CharacterForgeClientConfig
+): CharacterForgeClient {
+  return new CharacterForgeClient(config);
+}

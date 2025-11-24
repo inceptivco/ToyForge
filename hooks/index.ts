@@ -1,8 +1,8 @@
 /**
- * Custom Hooks Index
+ * Hooks Index
  *
- * Re-exports all custom hooks for easy importing throughout the application.
+ * Central export point for all custom hooks
  */
 
-export { useAuth } from './useAuth';
-export { useAsync, usePolling, useDebouncedAsync, useRetry } from './useAsync';
+export { useCharacterConfig } from './useCharacterConfig';
+export { useGeneration } from './useGeneration';
