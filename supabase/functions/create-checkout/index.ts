@@ -15,18 +15,18 @@ const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
 
 // SECURITY: Allowed origins for CORS - only allow requests from known origins
 const ALLOWED_ORIGINS = [
-    'https://characterforge.app',
-    'https://www.characterforge.app',
-    'https://app.characterforge.app',
+    'https://charactersmith.xyz',
+    'https://www.charactersmith.xyz',
+    'https://app.charactersmith.xyz',
     'http://localhost:3000',
     'http://localhost:5173',
 ] as const;
 
 // SECURITY: Allowed base URLs for redirect (prevents open redirect attacks)
 const ALLOWED_REDIRECT_URLS = [
-    'https://characterforge.app',
-    'https://www.characterforge.app',
-    'https://app.characterforge.app',
+    'https://charactersmith.xyz',
+    'https://www.charactersmith.xyz',
+    'https://app.charactersmith.xyz',
     'http://localhost:3000',
     'http://localhost:5173',
 ] as const;
@@ -212,7 +212,7 @@ serve(async (req) => {
                         product_data: {
                             name: productName,
                             description: `${credits} ${type === 'api' ? 'API calls' : 'image generations'}`,
-                            images: ['https://characterforge.app/assets/logo.png'],
+                            images: ['https://charactersmith.xyz/assets/logo.png'],
                         },
                         unit_amount: priceAmount,
                     },

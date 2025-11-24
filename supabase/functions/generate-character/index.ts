@@ -68,36 +68,12 @@ const HTTP_STATUS = {
   INTERNAL_ERROR: 500,
 } as const;
 
-// Allowed origins for CORS - SECURITY: Only allow requests from known origins
-const ALLOWED_ORIGINS = [
-  'https://characterforge.app',
-  'https://www.characterforge.app',
-  'https://app.characterforge.app',
-  'http://localhost:3000',
-  'http://localhost:5173',
-] as const;
-
-function getAllowedOrigin(requestOrigin: string | null): string {
-  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin as typeof ALLOWED_ORIGINS[number])) {
-    return requestOrigin;
-  }
-  return ALLOWED_ORIGINS[0];
-}
-
-function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get('origin');
-  return {
-    'Access-Control-Allow-Origin': getAllowedOrigin(origin),
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-}
-
-// Legacy static headers for backwards compatibility
+// CORS Headers - Allow all origins since this is a public API
+// External developers use this API with their API keys from any origin
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 } as const;
 
 const STYLE_PROMPT = `

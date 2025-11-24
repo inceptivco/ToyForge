@@ -5,11 +5,11 @@
  * SECURITY: Only allow requests from known origins.
  */
 
-// Allowed origins for CORS
+// Allowed origins for CORS (user-facing endpoints only)
 const ALLOWED_ORIGINS = [
-  'https://characterforge.app',
-  'https://www.characterforge.app',
-  'https://app.characterforge.app',
+  'https://charactersmith.xyz',
+  'https://www.charactersmith.xyz',
+  'https://app.charactersmith.xyz',
   'http://localhost:3000',  // Development only
   'http://localhost:5173',  // Vite dev server
 ] as const;

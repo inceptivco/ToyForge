@@ -3,9 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 // SECURITY: Allowed origins for CORS - only allow requests from known origins
 const ALLOWED_ORIGINS = [
-    'https://characterforge.app',
-    'https://www.characterforge.app',
-    'https://app.characterforge.app',
+    'https://charactersmith.xyz',
+    'https://www.charactersmith.xyz',
+    'https://app.charactersmith.xyz',
     'http://localhost:3000',
     'http://localhost:5173',
 ] as const;
