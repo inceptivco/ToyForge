@@ -1,0 +1,8 @@
+# Netlify redirects file for SPA routing
+# This ensures all routes are handled by React Router
+# Static assets (JS, CSS, images, etc.) are automatically served by Netlify
+# This catch-all redirects all other routes to index.html with a 200 status
+# The 200 status is important - it tells the browser the page exists (not a redirect)
+
+/*    /index.html   200
+

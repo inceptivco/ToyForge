@@ -9,3 +9,11 @@
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
   SECRETS_SCAN_OMIT_PATHS = "dist/**,docs/**"
 
+# Redirect rules for SPA routing
+# All routes should fall back to index.html so React Router can handle them
+# This ensures direct navigation to routes like /app, /developer, etc. works correctly
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
