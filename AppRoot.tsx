@@ -8,6 +8,7 @@ import { LandingPage } from './components/LandingPage';
 import { DeveloperDashboard } from './components/DeveloperDashboard';
 import { CreditPurchaseModal } from './components/CreditPurchaseModal';
 import { SignInModal } from './components/SignInModal';
+import { FigmaAuthCallback } from './components/FigmaAuthCallback';
 import { CharacterConfig } from './types';
 import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS, AGE_GROUPS } from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
@@ -375,6 +376,7 @@ export default function App() {
         <Route path="/" element={<LandingPage user={user} onSignInClick={() => setIsSignInOpen(true)} />} />
         <Route path="/app" element={<MainApp />} />
         <Route path="/developer/*" element={<DeveloperDashboard />} />
+        <Route path="/figma-auth" element={<FigmaAuthCallback />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <SignInModal

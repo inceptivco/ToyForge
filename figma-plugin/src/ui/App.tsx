@@ -25,7 +25,7 @@ import { GenerationStatus } from './components/GenerationStatus';
 type ViewMode = 'config' | 'history';
 
 export const App: React.FC = () => {
-  const { user, profile, isLoading, isAuthenticated, signIn, signOut, refreshProfile } = useAuth();
+  const { user, profile, isLoading, isAuthenticated, pendingAuth, isPolling, signIn, signOut, cancelAuth, refreshProfile } = useAuth();
   const { config, availableHairStyles, availableClothing, updateConfig, handleGenderChange, randomize, reset } = useConfig();
   const { generationState, history, generate, reinsertFromHistory, clearHistory, resetState } = useGeneration();
 
@@ -68,9 +68,17 @@ export const App: React.FC = () => {
     );
   }
 
-  // Not authenticated - show sign in
+  // Not authenticated - show sign in (or pending auth)
   if (!isAuthenticated) {
-    return <SignInView onSignIn={signIn} isLoading={isLoading} />;
+    return (
+      <SignInView
+        onSignIn={signIn}
+        onCancelAuth={cancelAuth}
+        isLoading={isLoading}
+        pendingAuth={pendingAuth}
+        isPolling={isPolling}
+      />
+    );
   }
 
   const credits = profile?.credits_balance ?? 0;

@@ -6,9 +6,13 @@ import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import type { UserProfile, CharacterConfig } from '../types';
 import { STORAGE_KEYS } from '../constants';
 
-// Supabase configuration - these will be replaced during build
+// Supabase configuration
 const SUPABASE_URL = 'https://qfbjiclgpqwrljeddnyy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmYmppY2xncHF3cmxqZWRkbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwMjcyNDksImV4cCI6MjA2MzYwMzI0OX0.bnKmxR44znJ1qaMkPSkNpHqHsAt4Z0RVo2kH5tpGdXI';
+
+// The main ToyForge app URL for auth callbacks
+// This page will handle the magic link and store tokens for the plugin to retrieve
+const AUTH_CALLBACK_BASE = 'https://toyforge.app';
 
 // Create Supabase client
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -43,6 +47,18 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
 });
 
 /**
+ * Generate a unique auth code for linking sessions
+ */
+function generateAuthCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
  * Get current session
  */
 export async function getSession(): Promise<Session | null> {
@@ -75,22 +91,154 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 }
 
 /**
- * Sign in with magic link (OTP)
+ * Initiate magic link sign-in
+ * Generates an auth code and stores pending auth info
  */
-export async function signInWithMagicLink(email: string): Promise<{ error?: string }> {
+export async function initiateMagicLink(email: string): Promise<{ authCode?: string; error?: string }> {
+  // Generate a unique auth code for this sign-in attempt
+  const authCode = generateAuthCode();
+
+  // Store pending auth info locally
+  try {
+    localStorage.setItem(STORAGE_KEYS.AUTH_SESSION + '_pending', JSON.stringify({
+      authCode,
+      email,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // Continue even if storage fails
+  }
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      // Redirect to a special page that will handle the auth callback
-      emailRedirectTo: `${window.location.origin}/auth-callback`,
+      // Redirect to the main app which will handle the auth callback
+      // The callback page will display the auth code for the user to verify
+      emailRedirectTo: `${AUTH_CALLBACK_BASE}/figma-auth?code=${authCode}`,
     },
   });
 
   if (error) {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    } catch {
+      // Ignore
+    }
     return { error: error.message };
   }
 
-  return {};
+  return { authCode };
+}
+
+/**
+ * Poll for auth completion by checking the figma_auth_codes table
+ * Returns success when tokens are found and session is established
+ */
+export async function pollForAuthCompletion(authCode: string): Promise<{
+  success: boolean;
+  pending?: boolean;
+  error?: string
+}> {
+  try {
+    // Query the figma_auth_codes table for this code
+    const { data, error } = await supabase
+      .from('figma_auth_codes')
+      .select('access_token, refresh_token')
+      .eq('code', authCode)
+      .eq('used', false)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Poll error:', error);
+      // Table might not exist yet, return pending
+      return { success: false, pending: true };
+    }
+
+    if (!data || !data.access_token) {
+      // Auth not yet completed
+      return { success: false, pending: true };
+    }
+
+    // Found auth data - establish session
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+
+    if (sessionError) {
+      return { success: false, error: sessionError.message };
+    }
+
+    // Mark the code as used
+    await supabase
+      .from('figma_auth_codes')
+      .update({ used: true })
+      .eq('code', authCode);
+
+    // Clean up pending auth
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    } catch {
+      // Ignore
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Poll exception:', err);
+    return { success: false, pending: true };
+  }
+}
+
+/**
+ * Get pending auth info from localStorage
+ */
+export function getPendingAuth(): { authCode: string; email: string; timestamp: number } | null {
+  try {
+    const pending = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+    if (pending) {
+      return JSON.parse(pending);
+    }
+  } catch {
+    // Ignore
+  }
+  return null;
+}
+
+/**
+ * Clear pending auth
+ */
+export function clearPendingAuth(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Manual session establishment using tokens (fallback)
+ */
+export async function setSessionFromTokens(
+  accessToken: string,
+  refreshToken: string
+): Promise<{ error?: string }> {
+  try {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    // Clear any pending auth
+    clearPendingAuth();
+
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to set session' };
+  }
 }
 
 /**
@@ -98,7 +246,12 @@ export async function signInWithMagicLink(email: string): Promise<{ error?: stri
  */
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
-  localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+  try {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION + '_pending');
+  } catch {
+    // Ignore
+  }
 }
 
 /**
