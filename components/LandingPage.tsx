@@ -3,6 +3,7 @@ import { Bot, ArrowRight, Code, Zap, Layers, Shield, CheckCircle2 } from 'lucide
 import { ApiDemo } from './ApiDemo';
 import { ComponentDemo } from './ComponentDemo';
 import { Link } from 'react-router-dom';
+import { getStorageUrl } from '../utils/storage';
 
 interface LandingPageProps {
     user?: any;
@@ -81,21 +82,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                         <div className="flex gap-6 animate-[scroll_60s_linear_infinite] w-max px-4">
                             {[
                                 // Set 1
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png",
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png'),
                                 // Set 2 (Duplicate for smooth loop)
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png",
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png'),
                                 // Set 3 (Extra buffer)
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png",
-                                "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png",
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
                             ].map((src, i) => (
                                 <div key={i} className="w-64 h-64 bg-white rounded-2xl shadow-lg border border-slate-100 p-4 flex items-center justify-center transform transition-transform hover:scale-105 duration-300">
                                     <img

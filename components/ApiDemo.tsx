@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Terminal, Check, Copy } from 'lucide-react';
+import { getStorageUrl } from '../utils/storage';
 
 export const ApiDemo: React.FC = () => {
     const [isRunning, setIsRunning] = useState(false);
@@ -14,7 +15,7 @@ export const ApiDemo: React.FC = () => {
 
     // Fixed response for consistent demo
     const DEMO_RESPONSE = {
-        "image": "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/demo/example_character.png",
+        "image": getStorageUrl('demo/example_character.png'),
         "cached": false,
         "transparent": true,
         "credits_remaining": 42,
@@ -26,7 +27,7 @@ export const ApiDemo: React.FC = () => {
         }
     };
 
-    const sampleCurl = `curl -X POST https://mnxzykltetirdcnxugcl.supabase.co/functions/v1/generate-character \\
+    const sampleCurl = `curl -X POST \${VITE_SUPABASE_URL}/functions/v1/generate-character \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{

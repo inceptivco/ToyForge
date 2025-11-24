@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CharacterSmithEmbed } from './CharacterSmithEmbed';
 import { Code, Eye, Copy, Check, Smartphone, ArrowRight, RefreshCw } from 'lucide-react';
+import { getStorageUrl } from '../utils/storage';
 
 // Six SPECIFIC character configurations with their images
 // These cycle in order on refresh
@@ -17,7 +18,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'blue',
         accessories: ['glasses', 'headphones', 'beanie'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/default-character.png'
+        imageUrl: getStorageUrl('default-character.png')
     },
     {
         // Character 2: Adult with sunglasses
@@ -31,7 +32,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'dark',
         accessories: ['sunglasses'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char2.png'
+        imageUrl: getStorageUrl('char2.png')
     },
     {
         // Character 3: Kid with no accessories
@@ -45,7 +46,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'brown',
         accessories: ['none'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char3.png'
+        imageUrl: getStorageUrl('char3.png')
     },
     {
         // Character 4: Young adult with glasses
@@ -59,7 +60,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'dark',
         accessories: ['glasses'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char4.png'
+        imageUrl: getStorageUrl('char4.png')
     },
     {
         // Character 5: Preteen with beanie
@@ -73,7 +74,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'grey',
         accessories: ['beanie'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char5.png'
+        imageUrl: getStorageUrl('char5.png')
     },
     {
         // Character 6: Preteen with no accessories
@@ -87,7 +88,7 @@ const CHARACTER_CONFIGS = [
         eyeColor: 'brown',
         accessories: ['none'],
         transparent: true,
-        imageUrl: 'https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/char6.png'
+        imageUrl: getStorageUrl('char6.png')
     }
 ];
 
@@ -135,7 +136,7 @@ export const ComponentDemo: React.FC = () => {
         setTimeout(() => setIsInstallCopied(false), 2000);
     };
 
-    const highlightCode = (code: string): JSX.Element => {
+    const highlightCode = (code: string): React.ReactElement => {
         const lines = code.split('\n');
         const keywords = ['import', 'export', 'const', 'return', 'from', 'true', 'false'];
         const components = ['CharacterSmith', 'CharacterSmithView', 'MobileCharacter', 'MyCharacter'];

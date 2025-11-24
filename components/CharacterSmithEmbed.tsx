@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Sparkles } from 'lucide-react';
+import { getDefaultCharacterUrl, getStorageUrl } from '../utils/storage';
 
 interface CharacterConfig {
     gender?: string;
@@ -36,7 +37,7 @@ export const CharacterSmithEmbed: React.FC<CharacterSmithEmbedProps> = ({
     const isLoading = externalIsLoading !== undefined ? externalIsLoading : internalIsLoading;
 
     // Initialize with the default image always to ensure smooth transition from default -> generated
-    const [image, setImage] = useState<string | null>("https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/default-character.png");
+    const [image, setImage] = useState<string | null>(getDefaultCharacterUrl());
 
     useEffect(() => {
         if (triggerLoading) {
@@ -61,7 +62,7 @@ export const CharacterSmithEmbed: React.FC<CharacterSmithEmbedProps> = ({
         setTimeout(() => setStatus('Generating Geometry...'), 1600);
         setTimeout(() => setStatus('Applying Textures...'), 2400);
         setTimeout(() => {
-            setImage(imageUrl || "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png");
+            setImage(imageUrl || getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png'));
             setInternalIsLoading(false);
         }, 3500);
     };
@@ -81,7 +82,7 @@ export const CharacterSmithEmbed: React.FC<CharacterSmithEmbedProps> = ({
                 {/* Always show the image, update source when done */}
                 <div className="relative w-full h-full flex items-center justify-center group">
                     <img
-                        src={image || "https://mnxzykltetirdcnxugcl.supabase.co/storage/v1/object/public/generations/04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png"}
+                        src={image || getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png')}
                         alt="Generated Character"
                         className={`w-full h-full object-contain drop-shadow-xl transition-all duration-700 ${isLoading ? 'scale-95 blur-sm opacity-80' : 'scale-100 blur-0 opacity-100'}`}
                     />
