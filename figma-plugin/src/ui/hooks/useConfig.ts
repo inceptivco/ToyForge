@@ -85,22 +85,25 @@ export function useConfig() {
 
     const randomItem = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
-    const newConfig: CharacterConfig = {
-      gender: randomGender,
-      ageGroup: randomItem(['kid', 'preteen', 'teen', 'young_adult', 'adult'] as const),
-      skinTone: randomItem(SKIN_TONES).id as CharacterConfig['skinTone'],
-      hairStyle: randomItem(validHair).id as CharacterConfig['hairStyle'],
-      hairColor: randomItem(HAIR_COLORS).id as CharacterConfig['hairColor'],
-      clothing: randomItem(validClothes).id as CharacterConfig['clothing'],
-      clothingColor: randomItem(CLOTHING_COLORS).id as CharacterConfig['clothingColor'],
-      eyeColor: randomItem(EYE_COLORS).id as CharacterConfig['eyeColor'],
-      accessories: [randomItem(ACCESSORIES).id as CharacterConfig['accessories'][number]],
-      transparent: true,
-    };
+    setConfig(prev => {
+      const newConfig: CharacterConfig = {
+        gender: randomGender,
+        ageGroup: randomItem(['kid', 'preteen', 'teen', 'young_adult', 'adult'] as const),
+        skinTone: randomItem(SKIN_TONES).id as CharacterConfig['skinTone'],
+        hairStyle: randomItem(validHair).id as CharacterConfig['hairStyle'],
+        hairColor: randomItem(HAIR_COLORS).id as CharacterConfig['hairColor'],
+        clothing: randomItem(validClothes).id as CharacterConfig['clothing'],
+        clothingColor: randomItem(CLOTHING_COLORS).id as CharacterConfig['clothingColor'],
+        eyeColor: randomItem(EYE_COLORS).id as CharacterConfig['eyeColor'],
+        accessories: [randomItem(ACCESSORIES).id as CharacterConfig['accessories'][number]],
+        transparent: prev.transparent !== false, // Preserve current transparent setting
+      };
 
-    setConfig(newConfig);
-    setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig)).catch(() => {
-      // Ignore
+      setStorageItem(STORAGE_KEYS.CONFIG, JSON.stringify(newConfig)).catch(() => {
+        // Ignore
+      });
+
+      return newConfig;
     });
   }, []);
 
