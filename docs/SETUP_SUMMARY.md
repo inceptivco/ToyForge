@@ -43,7 +43,7 @@ Your npm package `characterforge` is ready! Here's what was created and what to 
 
 ```typescript
 // Line 32 in src/client.ts
-const DEFAULT_BASE_URL = 'https://mnxzykltetirdcnxugcl.supabase.co/functions/v1';
+const DEFAULT_BASE_URL = 'https://your-project-id.supabase.co/functions/v1';
 ```
 
 This is the CharacterForge production backend. SDK users will automatically connect here with their API keys. They don't need their own Supabase projects.

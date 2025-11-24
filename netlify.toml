@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Note: To prevent Netlify secrets scanning from flagging VITE_SUPABASE_URL and
+# VITE_SUPABASE_ANON_KEY (which are public client-side keys), configure the following
+# in your Netlify site settings under "Build & deploy" > "Environment variables":
+#
+# SECRETS_SCAN_OMIT_KEYS = VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY
+# SECRETS_SCAN_OMIT_PATHS = dist/**,docs/**
+#
+# Alternatively, you can disable secrets scanning entirely if these are the only
+# "secrets" being detected:
+# SECRETS_SCAN_ENABLED = false
+
