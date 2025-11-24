@@ -75,8 +75,9 @@ const STYLE_PROMPT = `
 Render a high-end collectible vinyl toy figure. Direct front view. Facing the camera straight on. Symmetrical upper body portrait.
 Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny plastic.
 Lighting: Soft studio lighting, warm and diffuse.
-Background: Solid bright white background (hex code #FFFFFF). 
+Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
+Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
 `;
 
 const PROMPT_MAPS = {
@@ -157,7 +158,7 @@ const PROMPT_MAPS = {
     'glasses': 'wearing thick black rimmed glasses',
     'sunglasses': 'wearing exactly ONE single pair of sunglasses on the face covering the eyes. NOT on top of head. NOT multiple pairs. ONLY one pair on face.',
     'headphones': 'wearing large headphones around the neck',
-    'cap': 'wearing a baseball cap; forward orientation = visible visor; backward orientation = absolutely no visor visible; never mix backward orientation with any visible brim, peak, or visor-like shape',
+    'cap': 'wearing a front-facing baseball cap with the visor pointing forward, solid front panel, and zero visibility of any rear strap, opening, or adjustment hardware',
     'beanie': 'wearing a knit beanie hat',
   },
   AGE_GROUPS: {
@@ -386,31 +387,31 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     ? 'a happy smiling expression' 
     : 'a confident smirk';
 
-  // Build negative prompt based on what's NOT being worn
-  let negativePrompt = '';
+  // Build constraint prompt for accessories + general guardrails
+  const constraints: string[] = [];
   if (validAccessories.length === 0) {
-    negativePrompt = 'No glasses. No sunglasses. No hats. No accessories.';
+    constraints.push('No glasses. No sunglasses. No hats. No accessories.');
   } else {
-    // Add negatives for accessories NOT in the list
-    const negatives = [];
     if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
-      negatives.push('No glasses or sunglasses');
+      constraints.push('No glasses or sunglasses other than what is described.');
     }
     if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
-      negatives.push('No hats');
+      constraints.push('No hats other than what is described.');
     }
     if (!validAccessories.includes('headphones')) {
-      negatives.push('No headphones');
+      constraints.push('No headphones other than what is described.');
     }
-    
-    // For sunglasses specifically, add extra constraint
     if (validAccessories.includes('sunglasses')) {
-      negatives.push('No sunglasses on head');
-      negatives.push('No duplicate sunglasses');
+      constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
     }
-    
-    negativePrompt = negatives.length > 0 ? negatives.join('. ') + '.' : '';
+    if (validAccessories.includes('cap')) {
+      constraints.push('Cap must face forward with visor in front; do not show any rear opening, strap, or backwards orientation.');
+    }
   }
+  constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
+
+  const accessorialPrompt = accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : '';
+  const constraintPrompt = constraints.length > 0 ? `Constraints: ${constraints.join(' ')}` : '';
 
   const subjectPrompt = `
     A cute 3D vinyl toy character.
@@ -422,7 +423,8 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
     Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
     Expression: ${expressionPrompt}.
-    ${accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : negativePrompt}
+    ${accessorialPrompt}
+    ${constraintPrompt}
   `;
   
   logger.info('Generated prompt:', subjectPrompt);
