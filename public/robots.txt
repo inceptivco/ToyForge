@@ -1,0 +1,18 @@
+# robots.txt for CharacterForge
+User-agent: *
+Allow: /
+
+# Disallow admin/private routes
+Disallow: /app/
+Disallow: /developer/
+
+# Allow important pages
+Allow: /
+Allow: /developer/docs
+
+# Sitemap
+Sitemap: https://characterforge.app/sitemap.xml
+
+# Crawl-delay (optional, helps prevent server overload)
+Crawl-delay: 1
+

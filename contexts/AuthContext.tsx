@@ -10,6 +10,7 @@ import { supabase } from '../services/supabase';
 import { AuthUser, UserProfile } from '../types';
 import { authLogger } from '../utils/logger';
 import { AuthenticationError, SessionExpiredError } from '../utils/errors';
+import { getMagicLinkRedirectUrl } from '../utils/redirect';
 import type { Session, User } from '@supabase/supabase-js';
 
 // ============================================================================
@@ -158,7 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectUrl || window.location.href,
+        emailRedirectTo: redirectUrl || getMagicLinkRedirectUrl(),
       },
     });
 

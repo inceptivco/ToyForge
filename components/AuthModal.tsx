@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { X, Mail, Loader2 } from 'lucide-react';
+import { getMagicLinkRedirectUrl } from '../utils/redirect';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -25,7 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             const { error } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: window.location.origin,
+                    emailRedirectTo: getMagicLinkRedirectUrl(),
                 },
             });
 

@@ -314,10 +314,11 @@ export const auth = {
    * Send magic link for authentication
    */
   async sendMagicLink(email: string, redirectUrl?: string): Promise<void> {
+    const { getMagicLinkRedirectUrl } = await import('../utils/redirect');
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectUrl || window.location.href,
+        emailRedirectTo: redirectUrl || getMagicLinkRedirectUrl(),
       },
     });
 

@@ -4,7 +4,7 @@
 
 # CharacterForge
 
-AI-powered 3D character generation platform with React components and REST API.
+AI Character & Avatar Generator for Apps, Games & Design. Generate production-ready 3D characters with React components and REST API.
 
 ## Quick Start
 
@@ -38,12 +38,12 @@ AI-powered 3D character generation platform with React components and REST API.
 
 ## Features
 
-- 🎨 **3D Character Generation** - Create stylized vinyl toy characters
+- 🎨 **AI Character & Avatar Generation** - Create stylized 3D characters for games, apps, and design
 - ⚛️ **React Components** - Drop-in components for React and React Native
-- 🔌 **REST API** - Full programmatic access
-- 🎯 **Customizable** - Gender, skin tone, hair, clothing, accessories, and more
-- 🖼️ **Transparent Backgrounds** - Production-ready PNGs with alpha channels
-- 💳 **Credit-Based Pricing** - Pay only for what you generate
+- 🔌 **REST API** - Full programmatic access for developers
+- 🎯 **Fully Customizable** - Gender, age, skin tone, hair, clothing, accessories, and more
+- 🖼️ **Production-Ready Assets** - Transparent PNGs perfect for any project
+- 💳 **Simple Pricing** - Pay only for what you generate, starting at $0.10
 
 ## Installation
 

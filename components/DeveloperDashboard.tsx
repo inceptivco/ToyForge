@@ -18,6 +18,7 @@ import { CreditPurchaseModal } from './CreditPurchaseModal';
 import { BillingView } from './BillingView';
 import { SettingsView } from './SettingsView';
 import { DocsView } from './DocsView';
+import { getMagicLinkRedirectUrl } from '../utils/redirect';
 import { DashboardOverview } from './DashboardOverview';
 import { SignInModal } from './SignInModal';
 
@@ -398,7 +399,7 @@ export const DeveloperDashboard: React.FC = () => {
             <SignInModal
                 isOpen={isSignInOpen}
                 onClose={() => setIsSignInOpen(false)}
-                redirectUrl={window.location.href}
+                redirectUrl={getMagicLinkRedirectUrl()}
             />
         </>
     );

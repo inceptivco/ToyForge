@@ -137,7 +137,8 @@ serve(async (req) => {
             
             // Ensure we have a valid base URL
             if (!baseUrl || baseUrl === '') {
-                baseUrl = 'http://localhost:3000'; // Fallback for local development
+                // Default to production URL
+                baseUrl = 'https://characterforge.app';
             }
             
             finalSuccessUrl = type === 'api'

@@ -4,6 +4,7 @@ import { ApiDemo } from './ApiDemo';
 import { ComponentDemo } from './ComponentDemo';
 import { Link } from 'react-router-dom';
 import { getStorageUrl } from '../utils/storage';
+import { SEOHead } from './SEOHead';
 
 interface LandingPageProps {
     user?: any;
@@ -12,7 +13,14 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick }) => {
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-100 selection:text-brand-900">
+        <>
+            <SEOHead 
+                title="CharacterForge - AI Character & Avatar Generator for Apps, Games & Design"
+                description="Generate production-ready 3D characters and avatars with AI. Perfect for game development, app design, and digital projects. React components, REST API, and transparent PNGs. Instant character generation in seconds."
+                keywords="character generator, avatar generator, AI character creator, game characters, app avatars, 3D character generator, character API, avatar API, character assets, design characters, NPC generator, profile avatars"
+                url="https://characterforge.app/"
+            />
+            <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-100 selection:text-brand-900">
             {/* Navigation */}
             <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -55,8 +63,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-brand-500 to-purple-600">3D Avatars & Characters</span>
                         </h1>
                         <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto">
-                            The AI-powered engine for generating consistent, high-quality 3D assets.
-                            Drop our React component into your app and start creating in minutes.
+                            The AI-powered engine for generating consistent, production-ready 3D characters and avatars.
+                            Perfect for game development, app design, and digital projects. Drop our React component into your app and start creating in minutes.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link
@@ -101,7 +109,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <div key={i} className="w-64 h-64 bg-white rounded-2xl shadow-lg border border-slate-100 p-4 flex items-center justify-center transform transition-transform hover:scale-105 duration-300">
                                     <img
                                         src={src}
-                                        alt="Character"
+                                        alt="AI-generated 3D character and avatar created with CharacterForge for games and apps"
                                         className="w-full h-full object-contain"
                                     />
                                 </div>
@@ -116,21 +124,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <Zap size={24} />
                             </div>
                             <h3 className="text-lg font-bold text-slate-900 mb-2">Instant Generation</h3>
-                            <p className="text-slate-500 leading-relaxed">Create unique characters in seconds with our optimized AI pipeline. No 3D modeling skills required.</p>
+                            <p className="text-slate-500 leading-relaxed">Create unique characters and avatars in seconds with our optimized AI pipeline. No 3D modeling or design skills required.</p>
                         </div>
                         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/50 hover:shadow-xl transition-shadow">
                             <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 mb-6">
                                 <Layers size={24} />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">Transparent Assets</h3>
-                            <p className="text-slate-500 leading-relaxed">Automated background removal delivers production-ready PNGs with perfect alpha channels.</p>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Production-Ready Assets</h3>
+                            <p className="text-slate-500 leading-relaxed">Automated background removal delivers transparent PNGs perfect for games, apps, and design projects.</p>
                         </div>
                         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/50 hover:shadow-xl transition-shadow">
                             <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600 mb-6">
                                 <Code size={24} />
                             </div>
                             <h3 className="text-lg font-bold text-slate-900 mb-2">Developer First</h3>
-                            <p className="text-slate-500 leading-relaxed">Integrate directly into your apps with our simple REST API or React SDK.</p>
+                            <p className="text-slate-500 leading-relaxed">Integrate character and avatar generation directly into your apps and games with our simple REST API or React SDK.</p>
                         </div>
                     </div>
                 </div>
@@ -140,9 +148,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
             <section id="react" className="py-24 bg-white border-y border-slate-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Drop-in Component Library</h2>
+                        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Drop-in Character Forge Component Library</h2>
                         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                            Don't want to manage API calls? Use our pre-built React and React Native components for a seamless integration experience.
+                            Don't want to manage API calls? Use our pre-built React and React Native components for a seamless character generation integration experience.
                         </p>
                     </div>
 
@@ -154,9 +162,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
             <section id="pricing" className="py-24 bg-slate-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Simple, Transparent Pricing</h2>
+                        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Simple, Transparent Character Generation Pricing</h2>
                         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                            Pay only for what you generate. No monthly fees, no hidden costs.
+                            Pay only for what you generate. No monthly fees, no hidden costs. Affordable character creation for developers and creators.
                         </p>
                     </div>
 
@@ -174,9 +182,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                     <span className="text-4xl font-bold text-slate-900">$0.15</span>
                                     <span className="text-slate-500 ml-2">/ generation</span>
                                 </div>
-                                <p className="text-sm text-green-600 mt-2 font-medium">
-                                    Discounted to $0.12 or $0.10 with credit packs
-                                </p>
+                                <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full">
+                                    <span className="text-xs font-semibold text-green-700">Save with Credit Packs:</span>
+                                    <span className="text-lg font-bold text-green-600">$0.10</span>
+                                    <span className="text-xs text-green-600">/ generation</span>
+                                </div>
                             </div>
                             <ul className="space-y-4 mb-8">
                                 <li className="flex items-center gap-3 text-slate-600">
@@ -248,7 +258,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             </div>
                             <h2 className="text-3xl sm:text-4xl font-bold mb-6">Full Control for Developers</h2>
                             <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                                Need more flexibility? Our REST API gives you granular control over generation, caching, and asset management.
+                                Need more flexibility? Our CharacterForge REST API gives you granular control over character generation, caching, and asset management.
                             </p>
 
                             <div className="space-y-8">
@@ -317,5 +327,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                 </div>
             </footer>
         </div>
+        </>
     );
 };
