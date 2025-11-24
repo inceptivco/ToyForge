@@ -9,6 +9,8 @@ Disallow: /developer/
 # Allow important pages
 Allow: /
 Allow: /developer/docs
+Allow: /terms
+Allow: /privacy
 
 # Sitemap
 Sitemap: https://characterforge.app/sitemap.xml

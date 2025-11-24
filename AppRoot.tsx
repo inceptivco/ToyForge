@@ -9,6 +9,8 @@ import { DeveloperDashboard } from './components/DeveloperDashboard';
 import { CreditPurchaseModal } from './components/CreditPurchaseModal';
 import { SignInModal } from './components/SignInModal';
 import { FigmaAuthCallback } from './components/FigmaAuthCallback';
+import { TermsPage } from './components/TermsPage';
+import { PrivacyPage } from './components/PrivacyPage';
 import { CharacterConfig } from './types';
 import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS, AGE_GROUPS } from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
@@ -377,6 +379,8 @@ export default function App() {
         <Route path="/app" element={<MainApp />} />
         <Route path="/developer/*" element={<DeveloperDashboard />} />
         <Route path="/figma-auth" element={<FigmaAuthCallback />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <SignInModal

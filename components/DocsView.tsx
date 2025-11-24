@@ -308,7 +308,7 @@ curl -X POST https://api.characterforge.app/v1/generate \\
                     </p>
                 </div>
                 <a
-                    href="https://github.com/character-forge"
+                    href="https://github.com/inceptivco/characterforge-js"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"

@@ -318,11 +318,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                         <span className="text-slate-400 text-sm">© 2025</span>
                     </div>
                     <div className="flex gap-8 text-sm font-medium text-slate-500">
-                        <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Contact</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Twitter</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">GitHub</a>
+                        <Link to="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
+                        <Link to="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
+                        <a href="mailto:admin@characterforge.app" className="hover:text-slate-900 transition-colors">Contact</a>
+                        <a href="https://github.com/inceptivco/characterforge-js" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition-colors">GitHub</a>
                     </div>
                 </div>
             </footer>
