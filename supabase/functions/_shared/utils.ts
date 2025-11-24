@@ -26,10 +26,7 @@ export interface ApiResponse {
   error?: string;
 }
 
-export interface AuthResult {
-  userId: string;
-  email?: string;
-}
+// AuthResult and authentication functions are now exported from auth.ts
 
 // =============================================================================
 // Constants
@@ -45,6 +42,7 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   UNPROCESSABLE: 422,
+  FAILED_DEPENDENCY: 424,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_ERROR: 500,
   SERVICE_UNAVAILABLE: 503,
@@ -106,7 +104,7 @@ export function successResponse<T>(data: T, status: number = HTTP_STATUS.OK): Re
 }
 
 // =============================================================================
-// Authentication
+// Supabase Client
 // =============================================================================
 
 /**
@@ -123,32 +121,7 @@ export function createServiceClient(): SupabaseClient {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-/**
- * Authenticate a request using Bearer token
- */
-export async function authenticateRequest(
-  req: Request,
-  supabase: SupabaseClient
-): Promise<AuthResult> {
-  const authHeader = req.headers.get('Authorization');
-
-  if (!authHeader) {
-    throw new AuthenticationError('Missing Authorization header');
-  }
-
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-
-  if (error || !user) {
-    throw new AuthenticationError('Invalid authentication token');
-  }
-
-  return {
-    userId: user.id,
-    email: user.email,
-  };
-}
+// Authentication is now handled in auth.ts
 
 // =============================================================================
 // Validation
