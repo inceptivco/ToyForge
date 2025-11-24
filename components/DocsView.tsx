@@ -36,7 +36,7 @@ export const DocsView: React.FC = () => {
             .replace(/('.*?')/g, '<span class="text-green-400">$1</span>')
             .replace(/(\/\/.*)/g, '<span class="text-slate-500">$1</span>')
             .replace(/\b(console|log)\b/g, '<span class="text-blue-400">$1</span>')
-            .replace(/\b(CharacterForge)\b/g, '<span class="text-yellow-400">$1</span>');
+            .replace(/\b(CharacterSmith)\b/g, '<span class="text-yellow-400">$1</span>');
     };
 
     const CodeBlock = ({ code, language, id }: { code: string, language: string, id: string }) => (
@@ -58,10 +58,10 @@ export const DocsView: React.FC = () => {
         </div>
     );
 
-    const reactCode = `import { CharacterForge } from 'character-forge';
+    const reactCode = `import { CharacterSmith } from 'character-smith';
 
 // 1. Configure the client
-const client = new CharacterForge({
+const client = new CharacterSmith({
   apiKey: 'sk_...'
 });
 
@@ -90,10 +90,10 @@ const generateCharacter = async (config) => {
   return character.url;
 };`;
 
-    const reactNativeCode = `import { CharacterForge } from 'character-forge';
+    const reactNativeCode = `import { CharacterSmith } from 'character-smith';
 
 // 1. Configure the client
-const client = new CharacterForge({
+const client = new CharacterSmith({
   apiKey: 'sk_...'
 });
 
@@ -123,7 +123,7 @@ const generateCharacter = async (config) => {
 };`;
 
     const curlCode = `# Generate a character
-curl -X POST https://api.characterforge.com/v1/generate \\
+curl -X POST https://api.charactersmith.com/v1/generate \\
   -H "x-api-key: sk_..." \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -304,11 +304,11 @@ curl -X POST https://api.characterforge.com/v1/generate \\
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-4">Documentation</h1>
                     <p className="text-lg text-slate-600">
-                        Complete reference for the CharacterForge API and SDKs.
+                        Complete reference for the CharacterSmith API and SDKs.
                     </p>
                 </div>
                 <a
-                    href="https://github.com/character-forge"
+                    href="https://github.com/character-smith"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
@@ -330,7 +330,7 @@ curl -X POST https://api.characterforge.com/v1/generate \\
                     <p className="text-slate-600 mb-4">
                         Install the universal JavaScript client. Works with Node.js, React, React Native, and browser environments.
                     </p>
-                    <CodeBlock code="npm install character-forge" language="bash" id="install-pkg" />
+                    <CodeBlock code="npm install character-smith" language="bash" id="install-pkg" />
                 </div>
             </section>
 
@@ -358,9 +358,9 @@ curl -X POST https://api.characterforge.com/v1/generate \\
                     <div className="p-6 bg-slate-50">
                         {activeTab === 'js' && (
                             <CodeBlock
-                                code={`import { CharacterForge } from 'character-forge';
+                                code={`import { CharacterSmith } from 'character-smith';
 
-const client = new CharacterForge('YOUR_API_KEY');
+const client = new CharacterSmith('YOUR_API_KEY');
 
 // Generate a character
 const character = await client.generate({
@@ -376,7 +376,7 @@ const character = await client.generate({
   transparent: true
 });
 
-console.log(character.url); // https://api.characterforge.com/v1/assets/...`}
+console.log(character.url); // https://api.charactersmith.com/v1/assets/...`}
                                 language="typescript"
                                 id="js-code"
                             />
@@ -392,7 +392,7 @@ console.log(character.url); // https://api.characterforge.com/v1/assets/...`}
                     Authentication
                 </h3>
                 <p className="text-sm text-slate-600 mb-4">
-                    Authenticate requests by sending your CharacterForge API key in the
+                    Authenticate requests by sending your CharacterSmith API key in the
                     {' '}<code className="px-1 py-0.5 bg-white border border-slate-200 rounded">x-api-key</code> header. Your API key maps usage and credits to your account.
                 </p>
                 <p className="text-xs text-slate-500 mt-4">
@@ -431,9 +431,9 @@ console.log(character.url); // https://api.characterforge.com/v1/assets/...`}
                             <CodeBlock
                                 code={`import React, { useState } from 'react';
 import { View, Image, Button } from 'react-native';
-import { CharacterForge } from 'character-forge';
+import { CharacterSmith } from 'character-smith';
 
-const client = new CharacterForge('API_KEY');
+const client = new CharacterSmith('API_KEY');
 
 export default function AvatarCreator() {
   const [imageUrl, setImageUrl] = useState(null);
@@ -464,9 +464,9 @@ export default function AvatarCreator() {
                         ) : (
                             <CodeBlock
                                 code={`import React, { useState } from 'react';
-import { CharacterForge } from 'character-forge';
+import { CharacterSmith } from 'character-smith';
 
-const client = new CharacterForge('API_KEY');
+const client = new CharacterSmith('API_KEY');
 
 export function AvatarCreator() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);

@@ -8,17 +8,17 @@
 import type { CharacterConfig } from '../types';
 import { supabase } from './supabase';
 import {
-  characterForgeClient,
+  characterSmithClient,
   AuthenticationError,
   InsufficientCreditsError,
-  CharacterForgeError,
+  CharacterSmithError,
 } from './sdk/client';
 
 // =============================================================================
 // Error Types (re-exported for consumers)
 // =============================================================================
 
-export { AuthenticationError, InsufficientCreditsError, CharacterForgeError };
+export { AuthenticationError, InsufficientCreditsError, CharacterSmithError };
 
 // =============================================================================
 // Main Pipeline
@@ -37,7 +37,7 @@ export { AuthenticationError, InsufficientCreditsError, CharacterForgeError };
  * @returns Promise<string> - URL of the generated image
  * @throws AuthenticationError - If user is not logged in
  * @throws InsufficientCreditsError - If user has insufficient credits
- * @throws CharacterForgeError - For other generation errors
+ * @throws CharacterSmithError - For other generation errors
  */
 export async function generateCharacterPipeline(
   config: CharacterConfig,
@@ -56,7 +56,7 @@ export async function generateCharacterPipeline(
 
   try {
     // Delegate to the SDK client
-    const imageUrl = await characterForgeClient.generate(config, onStatusUpdate);
+    const imageUrl = await characterSmithClient.generate(config, onStatusUpdate);
 
     onStatusUpdate('Generation complete!');
     return imageUrl;
@@ -64,13 +64,13 @@ export async function generateCharacterPipeline(
     console.error('[generateCharacterPipeline] Error:', error);
 
     // Re-throw known errors
-    if (error instanceof CharacterForgeError) {
+    if (error instanceof CharacterSmithError) {
       throw error;
     }
 
     // Wrap unknown errors
     const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    throw new CharacterForgeError(message);
+    throw new CharacterSmithError(message);
   }
 }
 
@@ -82,12 +82,13 @@ export async function generateCharacterPipeline(
  * Clear the local image cache
  */
 export async function clearGenerationCache(): Promise<void> {
-  await characterForgeClient.clearCache();
+  await characterSmithClient.clearCache();
 }
 
 /**
  * Get cache statistics
  */
-export function getCacheStats(): { enabled: boolean } {
-  return characterForgeClient.getCacheStats();
+export async function getCacheStats(): Promise<{ enabled: boolean }> {
+  const stats = await characterSmithClient.getCacheStats();
+  return { enabled: stats !== null };
 }

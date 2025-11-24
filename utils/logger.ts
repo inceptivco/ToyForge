@@ -1,5 +1,5 @@
 /**
- * Logging Utility for CharacterForge
+ * Logging Utility for CharacterSmith
  *
  * Provides consistent logging across the application with support for
  * different log levels and optional remote logging in production.

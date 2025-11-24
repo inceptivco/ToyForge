@@ -12,6 +12,6 @@ export {
   getCacheStats,
   AuthenticationError,
   InsufficientCreditsError,
-  CharacterForgeError,
+  CharacterSmithError,
 } from './geminiService';
-export { characterForgeClient, CharacterForgeClient } from './sdk/client';
+export { characterSmithClient, CharacterSmithClient } from './sdk/client';

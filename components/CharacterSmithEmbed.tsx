@@ -14,7 +14,7 @@ interface CharacterConfig {
     cache?: boolean;
 }
 
-interface CharacterForgeEmbedProps {
+interface CharacterSmithEmbedProps {
     config?: CharacterConfig;
     triggerLoading?: boolean;
     imageUrl?: string | null;
@@ -22,7 +22,7 @@ interface CharacterForgeEmbedProps {
     className?: string;
 }
 
-export const CharacterForgeEmbed: React.FC<CharacterForgeEmbedProps> = ({
+export const CharacterSmithEmbed: React.FC<CharacterSmithEmbedProps> = ({
     config,
     triggerLoading,
     imageUrl,

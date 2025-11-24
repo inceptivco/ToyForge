@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CharacterForgeEmbed } from './CharacterForgeEmbed';
+import { CharacterSmithEmbed } from './CharacterSmithEmbed';
 import { Code, Eye, Copy, Check, Smartphone, ArrowRight, RefreshCw } from 'lucide-react';
 
 // Six SPECIFIC character configurations with their images
@@ -120,7 +120,7 @@ export const ComponentDemo: React.FC = () => {
     };
 
     const getInstallCommand = () => {
-        return activeTab === 'react-native' ? 'npm install @characterforge/react-native' : 'npm install @characterforge/react';
+        return activeTab === 'react-native' ? 'npm install @charactersmith/react-native' : 'npm install @charactersmith/react';
     };
 
     const handleCopy = () => {
@@ -138,7 +138,7 @@ export const ComponentDemo: React.FC = () => {
     const highlightCode = (code: string): JSX.Element => {
         const lines = code.split('\n');
         const keywords = ['import', 'export', 'const', 'return', 'from', 'true', 'false'];
-        const components = ['CharacterForge', 'CharacterForgeView', 'MobileCharacter', 'MyCharacter'];
+        const components = ['CharacterSmith', 'CharacterSmithView', 'MobileCharacter', 'MyCharacter'];
 
         return (
             <>
@@ -232,12 +232,12 @@ export const ComponentDemo: React.FC = () => {
   }`;
 
         if (activeTab === 'react-native') {
-            return `import { CharacterForgeView } from '@characterforge/react-native';
+            return `import { CharacterSmithView } from '@charactersmith/react-native';
 
 export const MobileCharacter = () => {
   return (
-    <CharacterForgeView
-      apiKey={process.env.CHARACTER_FORGE_KEY}
+    <CharacterSmithView
+      apiKey={process.env.CHARACTER_SMITH_KEY}
       config={${configString}}
       cache={true}
       transparent={true}
@@ -246,12 +246,12 @@ export const MobileCharacter = () => {
   );
 };`;
         }
-        return `import { CharacterForge } from '@characterforge/react';
+        return `import { CharacterSmith } from '@charactersmith/react';
 
 export const MyCharacter = () => {
   return (
-    <CharacterForge
-      apiKey={process.env.CHARACTER_FORGE_KEY}
+    <CharacterSmith
+      apiKey={process.env.CHARACTER_SMITH_KEY}
       config={${configString}}
       cache={true}
       transparent={true}
@@ -265,9 +265,9 @@ export const MyCharacter = () => {
         <div className="w-full max-w-7xl mx-auto" ref={demoRef}>
             {/* Character and Code - Same Height, No Nested Container */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* Left Side: Preview - Direct CharacterForgeEmbed without container */}
+                {/* Left Side: Preview - Direct CharacterSmithEmbed without container */}
                 <div className="flex items-center justify-center h-[700px]">
-                    <CharacterForgeEmbed
+                    <CharacterSmithEmbed
                         triggerLoading={triggerLoading}
                         config={currentConfig}
                         imageUrl={currentConfig.imageUrl}

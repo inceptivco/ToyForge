@@ -1,7 +1,7 @@
 /**
  * SDK Type Definitions
  *
- * Types for the CharacterForge SDK client and cache system.
+ * Types for the CharacterSmith SDK client and cache system.
  */
 
 import { CharacterConfig } from '../../types';
@@ -61,7 +61,7 @@ export interface GenerationResult {
 /**
  * Configuration options for the SDK client
  */
-export interface CharacterForgeClientConfig {
+export interface CharacterSmithClientConfig {
   /** API key for direct API access (future use) */
   apiKey?: string;
   /** Enable/disable client-side caching (default: true) */

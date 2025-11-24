@@ -1,14 +1,14 @@
 /**
- * CharacterForge SDK Client
+ * CharacterSmith SDK Client
  *
  * Main client for generating character images with built-in caching,
  * retry logic, and comprehensive error handling.
  */
 
-import type { CharacterConfig, CacheManager, CharacterForgeClientConfig, GenerateOptions } from '../../types';
+import type { CharacterConfig, CacheManager, CharacterSmithClientConfig, GenerateOptions } from '../../types';
 import { supabase } from '../supabase';
 import { WebCacheManager } from './cache';
-import { CacheManager, CharacterForgeClientConfig, GenerationResult } from './types';
+import { CacheManager, CharacterSmithClientConfig, GenerationResult } from './types';
 import { sdkLogger } from '../../utils/logger';
 import {
   ApiError,
@@ -23,7 +23,7 @@ import {
 export {
   AuthenticationError,
   InsufficientCreditsError,
-  GenerationError as CharacterForgeError,
+  GenerationError as CharacterSmithError,
 };
 
 // ============================================================================
@@ -171,12 +171,12 @@ function parseApiError(error: unknown, data?: unknown): Error {
 // SDK Client Class
 // ============================================================================
 
-export class CharacterForgeClient {
+export class CharacterSmithClient {
   private cacheManager: CacheManager;
-  private config: CharacterForgeClientConfig;
+  private config: CharacterSmithClientConfig;
   private retryConfig: typeof DEFAULT_RETRY_CONFIG;
 
-  constructor(config: CharacterForgeClientConfig = {}) {
+  constructor(config: CharacterSmithClientConfig = {}) {
     this.config = {
       cache: true, // Default to enabled
       ...config,
@@ -350,14 +350,14 @@ export class CharacterForgeClient {
 // Singleton Instance
 // ============================================================================
 
-export const characterForgeClient = new CharacterForgeClient();
+export const characterSmithClient = new CharacterSmithClient();
 
 // ============================================================================
 // Factory Function for Custom Instances
 // ============================================================================
 
-export function createCharacterForgeClient(
-  config?: CharacterForgeClientConfig
-): CharacterForgeClient {
-  return new CharacterForgeClient(config);
+export function createCharacterSmithClient(
+  config?: CharacterSmithClientConfig
+): CharacterSmithClient {
+  return new CharacterSmithClient(config);
 }

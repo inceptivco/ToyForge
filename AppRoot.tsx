@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import { Bot, Sparkles, LogOut, LayoutDashboard, User, ChevronDown } from 'lucide-react';
 import { ConfigPanel } from './components/ConfigPanel';
-import { CharacterForgeEmbed } from './components/CharacterForgeEmbed';
+import { CharacterSmithEmbed } from './components/CharacterSmithEmbed';
 import { LandingPage } from './components/LandingPage';
 import { DeveloperDashboard } from './components/DeveloperDashboard';
 import { CreditPurchaseModal } from './components/CreditPurchaseModal';
@@ -166,7 +166,7 @@ function MainApp() {
               </div>
             </div>
             <span className="font-bold text-xl tracking-tight text-slate-900 group-hover:text-red-600 transition-colors">
-              CharacterForge
+              CharacterSmith
             </span>
           </Link>
 
@@ -272,7 +272,7 @@ function MainApp() {
                   <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center text-white">
                     <Bot size={14} strokeWidth={3} />
                   </div>
-                  <span className="font-bold text-slate-900 text-sm tracking-tight">CharacterForge</span>
+                  <span className="font-bold text-slate-900 text-sm tracking-tight">CharacterSmith</span>
                 </div>
                 <div className="flex gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
@@ -283,7 +283,7 @@ function MainApp() {
 
               {/* Embed Content */}
               <div className="flex-1 relative overflow-hidden">
-                <CharacterForgeEmbed
+                <CharacterSmithEmbed
                   config={config}
                   isLoading={isGenerating}
                   imageUrl={generatedImage}

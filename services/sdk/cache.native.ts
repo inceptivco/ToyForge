@@ -16,7 +16,7 @@
 import * as FileSystem from 'expo-file-system';
 import { CacheManager } from './types';
 
-const CACHE_DIR = FileSystem.documentDirectory + 'character-forge/';
+const CACHE_DIR = FileSystem.documentDirectory + 'character-smith/';
 
 export class ReactNativeCacheManager implements CacheManager {
   

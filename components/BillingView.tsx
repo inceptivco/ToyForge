@@ -196,7 +196,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ user }) => {
                         <div>
                             <h3 className="font-semibold text-slate-900 mb-2">API Usage</h3>
                             <p className="text-slate-600 mb-2">
-                                The CharacterForge API uses a simple flat-rate pricing model.
+                                The CharacterSmith API uses a simple flat-rate pricing model.
                             </p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-bold text-slate-900">$0.10</span>

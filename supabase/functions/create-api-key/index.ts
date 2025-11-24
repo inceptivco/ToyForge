@@ -35,11 +35,11 @@ serve(async (req) => {
         const { label } = await req.json();
 
         // 3. Generate Key
-        // Format: sk_characterforge_[random_32_hex]
+        // Format: sk_charactersmith_[random_32_hex]
         const randomBytes = new Uint8Array(24);
         crypto.getRandomValues(randomBytes);
         const randomHex = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-        const apiKey = `sk_characterforge_${randomHex}`;
+        const apiKey = `sk_charactersmith_${randomHex}`;
 
         // 4. Hash Key
         const encoder = new TextEncoder();

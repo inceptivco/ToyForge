@@ -70,8 +70,8 @@ serve(async (req) => {
             credits = Math.floor(numAmount / rate);
             
             productName = type === 'api'
-                ? `CharacterForge API Credits ($${numAmount.toFixed(2)})`
-                : `CharacterForge App Credits ($${numAmount.toFixed(2)})`;
+                ? `CharacterSmith API Credits ($${numAmount.toFixed(2)})`
+                : `CharacterSmith App Credits ($${numAmount.toFixed(2)})`;
         
         // 2. Predefined Packs (Standard App purchase)
         } else if (packId) {
@@ -81,15 +81,15 @@ serve(async (req) => {
                 priceAmount = type === 'api' ? 500 : 750; 
                 credits = 50;
                 productName = type === 'api'
-                    ? 'CharacterForge API Starter (50 Calls)'
-                    : 'CharacterForge Starter Pack (50 Credits)';
+                    ? 'CharacterSmith API Starter (50 Calls)'
+                    : 'CharacterSmith Starter Pack (50 Credits)';
             } else if (packId === 'pro') {
                 // Pro: $20.00 for 200 credits ($0.10/gen)
                 priceAmount = 2000; 
                 credits = 200;
                 productName = type === 'api'
-                    ? 'CharacterForge API Pro (200 Calls)'
-                    : 'CharacterForge Pro Pack (200 Credits)';
+                    ? 'CharacterSmith API Pro (200 Calls)'
+                    : 'CharacterSmith Pro Pack (200 Credits)';
             } else {
                 throw new Error('Invalid pack ID');
             }
@@ -129,7 +129,7 @@ serve(async (req) => {
                         product_data: {
                             name: productName,
                             description: `${credits} ${type === 'api' ? 'API calls' : 'image generations'}`,
-                            images: ['https://characterforge.app/assets/logo.png'],
+                            images: ['https://charactersmith.app/assets/logo.png'],
                         },
                         unit_amount: priceAmount,
                     },
