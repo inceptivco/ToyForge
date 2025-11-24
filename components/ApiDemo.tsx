@@ -7,32 +7,36 @@ export const ApiDemo: React.FC = () => {
     const [response, setResponse] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
 
-    // Fixed values for canned demo
-    const gender = 'female';
+    // Fixed values for canned demo - Young Adult with cap
+    const gender = 'male';
+    const ageGroup = 'young_adult';
     const skinTone = 'light';
-    const hairStyle = 'bob';
-    const clothingColor = 'blue';
+    const hairStyle = 'messy';
+    const hairColor = 'platinum';
+    const clothing = 'sweater';
+    const clothingColor = 'black';
+    const eyeColor = 'green';
+    const accessories = ['cap'];
 
-    // Fixed response for consistent demo
+    // Fixed response for consistent demo (matches actual API response)
     const DEMO_RESPONSE = {
-        "image": getStorageUrl('demo/example_character.png'),
-        "cached": false,
-        "transparent": true,
-        "credits_remaining": 42,
-        "config": {
-            gender,
-            skinTone: skinTone,
-            hairStyle: hairStyle,
-            clothingColor: clothingColor
-        }
+        "image": getStorageUrl('char7.png')
     };
 
     const sampleCurl = `curl -X POST \${VITE_SUPABASE_URL}/functions/v1/generate-character \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "x-api-key: sk_characterforge_..." \\
   -H "Content-Type: application/json" \\
   -d '{
     "gender": "${gender}",
-    "clothingColor": "${clothingColor}"
+    "ageGroup": "${ageGroup}",
+    "skinTone": "${skinTone}",
+    "hairStyle": "${hairStyle}",
+    "hairColor": "${hairColor}",
+    "clothing": "${clothing}",
+    "clothingColor": "${clothingColor}",
+    "eyeColor": "${eyeColor}",
+    "accessories": ${JSON.stringify(accessories)},
+    "transparent": true
   }'`;
 
     const handleRun = () => {
@@ -78,36 +82,23 @@ export const ApiDemo: React.FC = () => {
                         </button>
                     </div>
                     <div className="flex-1 bg-[#1e1e1e] text-blue-400 overflow-x-auto">
-                        <pre className="whitespace-pre-wrap break-all">
+                        <pre className="whitespace-pre-wrap break-all text-xs leading-relaxed">
                             <span className="text-purple-400">curl</span> -X POST <span className="text-green-400">.../generate-character</span> {'\\'}<br />
-                            {'  '}-H <span className="text-orange-400">"Authorization: Bearer KEY"</span> {'\\'}<br />
+                            {'  '}-H <span className="text-orange-400">"x-api-key: sk_characterforge_..."</span> {'\\'}<br />
                             {'  '}-H <span className="text-orange-400">"Content-Type: application/json"</span> {'\\'}<br />
                             {'  '}-d <span className="text-yellow-300">{'\''}{'{'}<br />
-                                {'"gender"'}:
+                                {'  '}{'"gender"'}: "{gender}",<br />
+                                {'  '}{'"ageGroup"'}: "{ageGroup}",<br />
+                                {'  '}{'"skinTone"'}: "{skinTone}",<br />
+                                {'  '}{'"hairStyle"'}: "{hairStyle}",<br />
+                                {'  '}{'"hairColor"'}: "{hairColor}",<br />
+                                {'  '}{'"clothing"'}: "{clothing}",<br />
+                                {'  '}{'"clothingColor"'}: "{clothingColor}",<br />
+                                {'  '}{'"eyeColor"'}: "{eyeColor}",<br />
+                                {'  '}{'"accessories"'}: {JSON.stringify(accessories)},<br />
+                                {'  '}{'"transparent"'}: true<br />
+                                {'}'}{'\''}
                             </span>
-                            <span className="text-yellow-300 underline font-bold">
-                                "{gender}"
-                            </span>
-                            <span className="text-yellow-300">,<br />
-                                {'"accessories"'}:
-                            </span>
-                            <span className="text-yellow-300 font-bold">
-                                ["none"]
-                            </span>
-                            <span className="text-yellow-300">,<br />
-                                {'"hairStyle"'}:
-                            </span>
-                            <span className="text-yellow-300 underline font-bold">
-                                "{hairStyle}"
-                            </span>
-                            <span className="text-yellow-300">,<br />
-                                {'"clothingColor"'}:
-                            </span>
-                            <span className="text-yellow-300 underline font-bold">
-                                "{clothingColor}"
-                            </span>
-                            <span className="text-yellow-300"><br />
-                                {'}'}{'\''}</span>
                         </pre>
                     </div>
                     <button

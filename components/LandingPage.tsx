@@ -282,7 +282,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             </div>
 
                             <div className="mt-12">
-                                <Link to="/app" className="text-brand-400 hover:text-brand-300 font-bold flex items-center gap-2 group text-lg">
+                                <Link to="/developer" className="text-brand-400 hover:text-brand-300 font-bold flex items-center gap-2 group text-lg">
                                     Get API Key <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </Link>
                             </div>

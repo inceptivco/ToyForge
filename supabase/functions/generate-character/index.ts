@@ -155,7 +155,7 @@ const PROMPT_MAPS = {
   ACCESSORIES: {
     'none': '',
     'glasses': 'wearing thick black rimmed glasses',
-    'sunglasses': 'wearing exactly one pair of sunglasses placed in only one position: either on the face OR on top of the head. They must not appear in both positions at the same time, and no second pair is allowed under any circumstance.',
+    'sunglasses': 'wearing exactly ONE single pair of sunglasses on the face covering the eyes. NOT on top of head. NOT multiple pairs. ONLY one pair on face.',
     'headphones': 'wearing large headphones around the neck',
     'cap': 'wearing a baseball cap; forward orientation = visible visor; backward orientation = absolutely no visor visible; never mix backward orientation with any visible brim, peak, or visor-like shape',
     'beanie': 'wearing a knit beanie hat',
@@ -386,9 +386,31 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     ? 'a happy smiling expression' 
     : 'a confident smirk';
 
-  const negativePrompt = validAccessories.length === 0 
-    ? 'No glasses. No sunglasses. No hats. No accessories.' 
-    : '';
+  // Build negative prompt based on what's NOT being worn
+  let negativePrompt = '';
+  if (validAccessories.length === 0) {
+    negativePrompt = 'No glasses. No sunglasses. No hats. No accessories.';
+  } else {
+    // Add negatives for accessories NOT in the list
+    const negatives = [];
+    if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
+      negatives.push('No glasses or sunglasses');
+    }
+    if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
+      negatives.push('No hats');
+    }
+    if (!validAccessories.includes('headphones')) {
+      negatives.push('No headphones');
+    }
+    
+    // For sunglasses specifically, add extra constraint
+    if (validAccessories.includes('sunglasses')) {
+      negatives.push('No sunglasses on head');
+      negatives.push('No duplicate sunglasses');
+    }
+    
+    negativePrompt = negatives.length > 0 ? negatives.join('. ') + '.' : '';
+  }
 
   const subjectPrompt = `
     A cute 3D vinyl toy character.

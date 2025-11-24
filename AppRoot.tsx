@@ -68,15 +68,17 @@ function MainApp() {
     const validHairStyles = HAIR_STYLES.filter(h => !h.gender || h.gender === gender);
     const validClothing = CLOTHING_ITEMS.filter(c => !c.gender || c.gender === gender);
 
-    // Randomize 0-3 accessories
-    const numAccessories = Math.floor(Math.random() * 4); // 0, 1, 2, or 3
+    // Randomize 0-2 accessories (reduced from 0-3 to minimize conflicts)
+    const numAccessories = Math.floor(Math.random() * 3); // 0, 1, or 2
     const shuffledAccessories = [...ACCESSORIES]
       .filter(a => a.id !== 'none')
       .sort(() => 0.5 - Math.random())
       .slice(0, numAccessories)
       .map(a => a.id);
 
-    const selectedAccessories = shuffledAccessories.length > 0 ? shuffledAccessories : ['none'];
+    // Resolve conflicts: glasses and sunglasses can't both be worn
+    const resolvedAccessories = resolveAccessoryConflicts(shuffledAccessories);
+    const selectedAccessories = resolvedAccessories.length > 0 ? resolvedAccessories : ['none'];
 
     return {
       gender,
@@ -90,6 +92,33 @@ function MainApp() {
       accessories: selectedAccessories,
       transparent: config.transparent, // Keep current transparency setting
     } as CharacterConfig;
+  };
+
+  // Helper to resolve accessory conflicts
+  const resolveAccessoryConflicts = (accessories: string[]): string[] => {
+    const result: string[] = [];
+    const seen = new Set<string>();
+    
+    // Conflict map: if accessory is selected, exclude these others
+    const conflicts: Record<string, string[]> = {
+      'glasses': ['sunglasses'],
+      'sunglasses': ['glasses'],
+      'cap': ['beanie', 'headphones'],
+      'beanie': ['cap', 'headphones'],
+      'headphones': ['cap', 'beanie'],
+    };
+    
+    for (const accessory of accessories) {
+      // Skip if a conflicting accessory was already added
+      if (seen.has(accessory)) continue;
+      
+      result.push(accessory);
+      
+      // Mark this and its conflicts as seen
+      conflicts[accessory]?.forEach(conflict => seen.add(conflict));
+    }
+    
+    return result;
   };
 
   // Randomize on mount
