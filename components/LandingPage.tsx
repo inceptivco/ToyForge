@@ -66,16 +66,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             The AI-powered engine for generating consistent, production-ready 3D characters and avatars.
                             Perfect for game development, app design, and digital projects. Drop our React component into your app and start creating in minutes.
                         </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Link
-                                to="/app"
-                                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold text-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-xl shadow-red-500/30"
-                            >
-                                Start Creating <ArrowRight size={20} />
-                            </Link>
+                        <div className="flex flex-col items-center gap-8">
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                                <Link
+                                    to="/app"
+                                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold text-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-xl shadow-red-500/30"
+                                >
+                                    Start Creating <ArrowRight size={20} />
+                                </Link>
+
+                                <a 
+                                    href="https://www.figma.com/community/plugin/1574914873471566028/characterforge-character-generator"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-4 bg-[#1e1e1e] hover:bg-black text-white rounded-xl border border-slate-800 transition-all hover:scale-105 shadow-lg group h-[60px]"
+                                >
+                                    <div className="relative w-5 h-auto flex items-center justify-center">
+                                        <svg width="20" height="30" viewBox="0 0 20 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-auto">
+                                            <path d="M10 0H5C2.24 0 0 2.24 0 5C0 7.76 2.24 10 5 10H10V0Z" fill="#F24E1E"/>
+                                            <path d="M10 0H15C17.76 0 20 2.24 20 5C20 7.76 17.76 10 15 10H10V0Z" fill="#FF7262"/>
+                                            <path d="M10 10H5C2.24 10 0 12.24 0 15C0 17.76 2.24 20 5 20H10V10Z" fill="#A259FF"/>
+                                            <path d="M20 15C20 17.76 17.76 20 15 20C12.24 20 10 17.76 10 15C10 12.24 12.24 10 15 10C17.76 10 20 12.24 20 15Z" fill="#1ABCFE"/>
+                                            <path d="M10 20H5C2.24 20 0 22.24 0 25C0 27.76 2.24 30 5 30C7.76 30 10 27.76 10 25V20Z" fill="#0ACF83"/>
+                                        </svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-[10px] font-medium text-slate-400 leading-none mb-1">Plugin for</div>
+                                        <div className="text-base font-bold text-white leading-none">Figma</div>
+                                    </div>
+                                </a>
+                            </div>
+
                             <Link
                                 to="/developer"
-                                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-lg transition-colors border-2 border-slate-200 hover:border-slate-300 shadow-sm"
+                                className="text-slate-600 hover:text-slate-900 font-medium text-sm flex items-center gap-2 transition-colors hover:underline decoration-slate-300 underline-offset-4"
                             >
                                 View Documentation
                             </Link>
@@ -89,22 +113,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
 
                         <div className="flex gap-6 animate-[scroll_60s_linear_infinite] w-max px-4">
                             {[
-                                // Set 1
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                // Set 1 - Recent transparent background images (Nov 24, 2025)
                                 getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764021874741_rkyp5d.png'), 
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764018614591_q09y0b.png'), 
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764017523879_ckj0t0d.png'), 
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764009891940_oos2bk.png'), 
                                 getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png'),
-                                // Set 2 (Duplicate for smooth loop)
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
                                 getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764021874741_rkyp5d.png'), 
+                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764018614591_q09y0b.png'), 
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764017523879_ckj0t0d.png'), 
+                                getStorageUrl('93e8b01b-3d99-493b-a06c-f82040a8c38a/1764009891940_oos2bk.png'), 
                                 getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662713279_vd5oh.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763658047143_6bv8f.png'),
-                                // Set 3 (Extra buffer)
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662605042_v71pmk.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662662948_nz2cs9.png'),
-                                getStorageUrl('04ab3acd-47b0-4f92-bae8-7db99cbf7158/1763662691341_bcn2xi.png'),
+                               
                             ].map((src, i) => (
                                 <div key={i} className="w-64 h-64 bg-white rounded-2xl shadow-lg border border-slate-100 p-4 flex items-center justify-center transform transition-transform hover:scale-105 duration-300">
                                     <img
