@@ -107,7 +107,8 @@ function getFileSystemAdapter(): FileSystemAdapter | null {
           }
         },
         readDirectoryAsync: async (dirUri: string) => {
-          return await RNFS.readDir(dirUri);
+          const files = await RNFS.readDir(dirUri);
+          return files.map((file: any) => file.name);
         },
       };
     }
@@ -144,6 +145,7 @@ export class NativeCacheManager implements CacheManager {
   private cacheDir: string;
   private isSupported: boolean;
   private metadata: CacheMetadata = {};
+  private initPromise: Promise<void>;
 
   constructor() {
     this.fs = getFileSystemAdapter();
@@ -152,9 +154,10 @@ export class NativeCacheManager implements CacheManager {
 
     if (this.isSupported && this.fs) {
       this.cacheDir = this.fs.documentDirectory + CACHE_DIR;
-      this.initialize();
+      this.initPromise = this.initialize();
     } else {
       this.cacheDir = '';
+      this.initPromise = Promise.resolve();
       cacheLogger.warn(
         'React Native cache not supported. Install expo-file-system or react-native-fs and @react-native-async-storage/async-storage.'
       );
@@ -210,6 +213,9 @@ export class NativeCacheManager implements CacheManager {
       return null;
     }
 
+    // Wait for initialization to complete
+    await this.initPromise;
+
     const entry = this.metadata[key];
     if (!entry) {
       return null;
@@ -242,6 +248,9 @@ export class NativeCacheManager implements CacheManager {
       if (typeof data === 'string') return data;
       throw new Error('Cache not supported in this environment');
     }
+
+    // Wait for initialization to complete
+    await this.initPromise;
 
     try {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
@@ -277,6 +286,9 @@ export class NativeCacheManager implements CacheManager {
   async delete(key: string): Promise<void> {
     if (!this.isSupported || !this.fs) return;
 
+    // Wait for initialization to complete
+    await this.initPromise;
+
     const entry = this.metadata[key];
     if (!entry) return;
 
@@ -293,6 +305,9 @@ export class NativeCacheManager implements CacheManager {
 
   async clear(): Promise<void> {
     if (!this.isSupported || !this.fs) return;
+
+    // Wait for initialization to complete
+    await this.initPromise;
 
     try {
       // Delete all files
