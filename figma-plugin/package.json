@@ -1,0 +1,32 @@
+{
+  "name": "toyforge-figma-plugin",
+  "version": "1.0.0",
+  "description": "ToyForge Character Generator for Figma",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite build --watch --mode development\" \"tsc -p tsconfig.node.json --watch\"",
+    "build": "vite build && tsc -p tsconfig.node.json",
+    "build:ui": "vite build",
+    "build:code": "tsc -p tsconfig.node.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.0.2"
+  }
+}
