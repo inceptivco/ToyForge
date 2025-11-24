@@ -25,18 +25,18 @@ export default defineConfig(({ mode }) => {
             manualChunks(id) {
               // Split vendor dependencies into separate chunks
               if (id.includes('node_modules')) {
-                // Split large libraries into their own chunks
+                // Don't split React/ReactDOM - keep them in main bundle to avoid dependency issues
+                // Only split other large dependencies
                 if (id.includes('@supabase')) {
                   return 'vendor-supabase';
                 }
-                if (id.includes('react') || id.includes('react-dom')) {
-                  return 'vendor-react';
+                if (id.includes('recharts')) {
+                  return 'vendor-charts';
                 }
-                if (id.includes('lucide-react')) {
-                  return 'vendor-icons';
+                // Group other node_modules (excluding React) into vendor chunk
+                if (!id.includes('react')) {
+                  return 'vendor';
                 }
-                // Other node_modules go into vendor chunk
-                return 'vendor';
               }
             }
           }
