@@ -5,7 +5,7 @@
  * retry logic, and comprehensive error handling.
  */
 
-import { CharacterConfig } from '../../types';
+import type { CharacterConfig, CacheManager, CharacterForgeClientConfig, GenerateOptions } from '../../types';
 import { supabase } from '../supabase';
 import { WebCacheManager } from './cache';
 import { CacheManager, CharacterForgeClientConfig, GenerationResult } from './types';

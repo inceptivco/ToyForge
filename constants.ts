@@ -180,6 +180,5 @@ export const DEFAULT_CONFIG: CharacterConfig = {
   eyeColor: 'blue',
   accessories: ['none'],
   transparent: true,
-  cache: false
 };
 

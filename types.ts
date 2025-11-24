@@ -294,3 +294,136 @@ export interface GenerationState {
   message: string;
   progress?: number;
 }
+
+export interface CreateApiKeyRequest {
+  label: string;
+}
+
+export interface CreateApiKeyResponse {
+  id: string;
+  label: string;
+  apiKey: string;
+  created_at: string;
+}
+
+// =============================================================================
+// Generation Types
+// =============================================================================
+
+export interface Generation {
+  id: string;
+  user_id: string;
+  api_key_id: string | null;
+  config_hash: string;
+  image_url: string;
+  config: CharacterConfig;
+  prompt_used: string;
+  cost_in_credits: number;
+  created_at: string;
+}
+
+export interface GenerationResult {
+  image: string;
+  cached?: boolean;
+}
+
+// =============================================================================
+// Billing & Credits Types
+// =============================================================================
+
+export type CreditType = 'api' | 'app';
+
+export interface CreditPack {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  pricePerCredit: number;
+  badge?: string;
+  features: string[];
+}
+
+export interface CheckoutRequest {
+  amount?: number;
+  packId?: string;
+  type: CreditType;
+}
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface UsageDataPoint {
+  date: string;
+  credits: number;
+  breakdown?: Record<string, number>;
+}
+
+// =============================================================================
+// API Response Types
+// =============================================================================
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: ApiError;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+// =============================================================================
+// Component Props Types
+// =============================================================================
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export interface LoadingState {
+  isLoading: boolean;
+  error: string | null;
+}
+
+// =============================================================================
+// SDK Types
+// =============================================================================
+
+export interface CharacterForgeClientConfig {
+  apiKey?: string;
+  cache?: boolean;
+  baseUrl?: string;
+  timeout?: number;
+  retries?: number;
+}
+
+export interface CacheManager {
+  get(key: string): Promise<string | null>;
+  set(key: string, data: Blob | string): Promise<string>;
+  clear(): Promise<void>;
+  delete?(key: string): Promise<void>;
+}
+
+export interface GenerateOptions {
+  signal?: AbortSignal;
+  onProgress?: (status: string) => void;
+}
+
+// =============================================================================
+// Utility Types
+// =============================================================================
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+export type Nullable<T> = T | null;
+
+export type AsyncState<T> = {
+  data: T | null;
+  isLoading: boolean;
+  error: string | null;
+};
