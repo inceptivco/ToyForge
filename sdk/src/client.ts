@@ -56,6 +56,7 @@ const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
 /**
  * Generate a stable cache key from configuration
  * Uses sorted keys to ensure deterministic key generation
+ * Only includes defined values to avoid cache collisions
  */
 function generateCacheKey(config: CharacterConfig): string {
   const sortedKeys = Object.keys(config).sort();
@@ -64,7 +65,14 @@ function generateCacheKey(config: CharacterConfig): string {
   for (const key of sortedKeys) {
     // Exclude non-visual props that shouldn't affect cache
     if (key === 'cache') continue;
-    stableObj[key] = config[key as keyof CharacterConfig];
+    
+    const value = config[key as keyof CharacterConfig];
+    
+    // Only include defined values to prevent cache collisions
+    // (JSON.stringify omits undefined, so we must exclude them explicitly)
+    if (value !== undefined) {
+      stableObj[key] = value;
+    }
   }
 
   return JSON.stringify(stableObj);
