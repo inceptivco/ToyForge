@@ -302,17 +302,24 @@ export class WebCacheManager implements CacheManager {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const keys: string[] = [];
+      const entries: Array<{ key: string; accessedAt: number }> = [];
       const request = store.openCursor();
 
       request.onerror = () => reject(request.error);
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor && keys.length < count) {
-          keys.push(cursor.key as string);
+        if (cursor) {
+          const entry = cursor.value as CacheEntry;
+          entries.push({
+            key: cursor.key as string,
+            accessedAt: entry.accessedAt,
+          });
           cursor.continue();
         } else {
-          resolve(keys);
+          // Sort by accessedAt (oldest first) and return the oldest N keys
+          entries.sort((a, b) => a.accessedAt - b.accessedAt);
+          const oldestKeys = entries.slice(0, count).map(e => e.key);
+          resolve(oldestKeys);
         }
       };
     });
