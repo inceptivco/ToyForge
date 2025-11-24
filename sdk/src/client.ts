@@ -9,6 +9,7 @@ import type {
   CharacterConfig,
   CacheManager,
   CharacterForgeClientConfig,
+  RetryConfig,
   StatusUpdateCallback,
   GenerationApiResponse,
   ApiErrorResponse,
@@ -38,7 +39,7 @@ export {
 // Constants
 // ============================================================================
 
-const DEFAULT_BASE_URL = 'https://YOUR_SUPABASE_PROJECT.supabase.co/functions/v1';
+const DEFAULT_BASE_URL = 'https://mnxzykltetirdcnxugcl.supabase.co/functions/v1';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
 const DEFAULT_RETRY_CONFIG = {
   maxRetries: 3,
@@ -168,7 +169,7 @@ async function fetchWithTimeout(
 export class CharacterForgeClient {
   private cacheManager: CacheManager;
   private config: Required<CharacterForgeClientConfig>;
-  private retryConfig: typeof DEFAULT_RETRY_CONFIG;
+  private retryConfig: RetryConfig;
 
   constructor(config: CharacterForgeClientConfig) {
     if (!config.apiKey) {

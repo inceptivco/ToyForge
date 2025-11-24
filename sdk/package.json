@@ -1,5 +1,5 @@
 {
-  "name": "@characterforge/sdk",
+  "name": "characterforge",
   "version": "1.0.0",
   "description": "AI-powered 3D character generation SDK for web and React Native",
   "main": "./dist/index.js",

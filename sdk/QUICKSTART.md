@@ -47,7 +47,7 @@ Verify the `dist/` folder was created with:
 npm pack
 ```
 
-This creates `characterforge-sdk-1.0.0.tgz`.
+This creates `characterforge-1.0.0.tgz`.
 
 **Test it in another project:**
 ```bash
@@ -55,12 +55,12 @@ This creates `characterforge-sdk-1.0.0.tgz`.
 mkdir test-sdk
 cd test-sdk
 npm init -y
-npm install /path/to/sdk/characterforge-sdk-1.0.0.tgz
+npm install /path/to/sdk/characterforge-1.0.0.tgz
 ```
 
 **Create a test file** (`test.js`):
 ```javascript
-const { createCharacterForgeClient } = require('@characterforge/sdk');
+const { createCharacterForgeClient } = require('characterforge');
 
 const client = createCharacterForgeClient({
   apiKey: 'test-key-here',
@@ -86,20 +86,20 @@ npm login
 ### Publish
 
 ```bash
-# For first publish of scoped package
-npm publish --access public
+# Publish the package
+npm publish
 
 # Check it published
-npm view @characterforge/sdk
+npm view characterforge
 ```
 
 ## 🎉 Done!
 
-Your SDK is now live at: https://www.npmjs.com/package/@characterforge/sdk
+Your SDK is now live at: https://www.npmjs.com/package/characterforge
 
 Users can install it with:
 ```bash
-npm install @characterforge/sdk
+npm install characterforge
 ```
 
 ## Next Steps

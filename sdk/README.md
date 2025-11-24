@@ -2,7 +2,7 @@
 
 AI-powered 3D character generation SDK for web and React Native applications.
 
-[![npm version](https://img.shields.io/npm/v/@characterforge/sdk.svg)](https://www.npmjs.com/package/@characterforge/sdk)
+[![npm version](https://img.shields.io/npm/v/characterforge.svg)](https://www.npmjs.com/package/characterforge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
@@ -18,7 +18,7 @@ AI-powered 3D character generation SDK for web and React Native applications.
 ## Installation
 
 ```bash
-npm install @characterforge/sdk
+npm install characterforge
 ```
 
 ### React Native Additional Setup
@@ -40,7 +40,7 @@ npm install react-native-fs @react-native-async-storage/async-storage
 ### Web / React
 
 ```typescript
-import { createCharacterForgeClient } from '@characterforge/sdk';
+import { createCharacterForgeClient } from 'characterforge';
 
 // Create a client instance
 const client = createCharacterForgeClient({
@@ -67,7 +67,7 @@ console.log('Generated image:', imageUrl);
 ### React Native
 
 ```typescript
-import { createCharacterForgeClient } from '@characterforge/sdk';
+import { createCharacterForgeClient } from 'characterforge';
 import { Image } from 'react-native';
 
 // Create a client instance
@@ -238,7 +238,7 @@ import {
   NetworkError,
   RateLimitError,
   GenerationError,
-} from '@characterforge/sdk';
+} from 'characterforge';
 
 try {
   const imageUrl = await client.generate(config);
@@ -299,7 +299,7 @@ const imageUrl = await client.generate({
 For advanced use cases, you can provide a custom cache implementation:
 
 ```typescript
-import { CacheManager } from '@characterforge/sdk';
+import { CacheManager } from 'characterforge';
 
 class MyCustomCache implements CacheManager {
   async get(key: string): Promise<string | null> {
@@ -372,7 +372,7 @@ import type {
   SkinToneId,
   HairStyleId,
   // ... and more
-} from '@characterforge/sdk';
+} from 'characterforge';
 ```
 
 All types are exported for your convenience, enabling excellent IDE autocomplete and type checking.
@@ -383,7 +383,7 @@ All types are exported for your convenience, enabling excellent IDE autocomplete
 
 ```tsx
 import React, { useState } from 'react';
-import { createCharacterForgeClient } from '@characterforge/sdk';
+import { createCharacterForgeClient } from 'characterforge';
 
 const client = createCharacterForgeClient({
   apiKey: process.env.REACT_APP_CHARACTER_FORGE_KEY!,
@@ -459,6 +459,8 @@ export function CharacterGenerator() {
 - 📧 Email: support@characterforge.app
 - 🐛 Issues: [GitHub Issues](https://github.com/characterforge/sdk/issues)
 - 📖 Documentation: [characterforge.app/docs](https://characterforge.app/docs)
+
+**Note:** This package is published as `characterforge` on npm.
 
 ## License
 

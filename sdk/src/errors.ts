@@ -80,6 +80,12 @@ export class InsufficientCreditsError extends AppError {
   }
 }
 
+export class PaymentError extends AppError {
+  constructor(message: string = 'Payment processing failed') {
+    super(message, 'PAYMENT_ERROR', 402);
+  }
+}
+
 // ============================================================================
 // API Errors
 // ============================================================================
@@ -90,9 +96,10 @@ export class ApiError extends AppError {
   constructor(
     message: string,
     statusCode: number = 500,
-    endpoint?: string
+    endpoint?: string,
+    code: string = 'API_ERROR'
   ) {
-    super(message, 'API_ERROR', statusCode);
+    super(message, code, statusCode);
     this.endpoint = endpoint;
   }
 }
@@ -101,8 +108,7 @@ export class RateLimitError extends ApiError {
   public readonly retryAfter?: number;
 
   constructor(retryAfter?: number) {
-    super('Too many requests. Please try again later.', 429);
-    this.code = 'RATE_LIMIT';
+    super('Too many requests. Please try again later.', 429, undefined, 'RATE_LIMIT');
     this.retryAfter = retryAfter;
   }
 }
@@ -118,15 +124,14 @@ export class NetworkError extends AppError {
 // ============================================================================
 
 export class GenerationError extends AppError {
-  constructor(message: string = 'Failed to generate character') {
-    super(message, 'GENERATION_ERROR', 500);
+  constructor(message: string = 'Failed to generate character', code: string = 'GENERATION_ERROR') {
+    super(message, code, 500);
   }
 }
 
 export class ImageProcessingError extends GenerationError {
   constructor(message: string = 'Failed to process image') {
-    super(message);
-    this.code = 'IMAGE_PROCESSING_ERROR';
+    super(message, 'IMAGE_PROCESSING_ERROR');
   }
 }
 
@@ -138,8 +143,8 @@ export class ValidationError extends AppError {
   public readonly field?: string;
   public readonly value?: unknown;
 
-  constructor(message: string, field?: string, value?: unknown) {
-    super(message, 'VALIDATION_ERROR', 400);
+  constructor(message: string, field?: string, value?: unknown, code: string = 'VALIDATION_ERROR') {
+    super(message, code, 400);
     this.field = field;
     this.value = value;
   }
@@ -147,8 +152,7 @@ export class ValidationError extends AppError {
 
 export class ConfigValidationError extends ValidationError {
   constructor(message: string, field?: string) {
-    super(message, field);
-    this.code = 'CONFIG_VALIDATION_ERROR';
+    super(message, field, undefined, 'CONFIG_VALIDATION_ERROR');
   }
 }
 

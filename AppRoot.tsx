@@ -30,7 +30,7 @@ function MainApp() {
       .from('profiles')
       .select('credits_balance')
       .eq('id', userId)
-      .single();
+      .single<{ credits_balance: number }>();
 
     if (!error && data) {
       setCredits(data.credits_balance);

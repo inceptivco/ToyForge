@@ -1,6 +1,6 @@
 # CharacterForge SDK - Setup Summary
 
-Your npm package is ready! Here's what was created and what to do next.
+Your npm package `characterforge` is ready! Here's what was created and what to do next.
 
 ## 📁 What Was Created
 
@@ -83,17 +83,17 @@ Before publishing, test the package:
 # Create a test package
 npm pack
 
-# This creates: characterforge-sdk-1.0.0.tgz
+# This creates: characterforge-1.0.0.tgz
 ```
 
 Then in a test project:
 ```bash
-npm install /path/to/characterforge-sdk-1.0.0.tgz
+npm install /path/to/characterforge-1.0.0.tgz
 ```
 
 Create a test file:
 ```typescript
-import { createCharacterForgeClient } from '@characterforge/sdk';
+import { createCharacterForgeClient } from 'characterforge';
 
 const client = createCharacterForgeClient({
   apiKey: 'your-test-key',
@@ -110,8 +110,8 @@ Follow the complete guide in `PUBLISHING.md`, but here's the quick version:
 # Login to npm (first time only)
 npm login
 
-# Publish (first time for scoped package)
-npm publish --access public
+# Publish
+npm publish
 
 # For updates
 npm version patch  # or minor, or major
@@ -147,8 +147,8 @@ Before publishing, test:
 - [ ] Build succeeds: `npm run build`
 - [ ] Local install works: `npm pack` then install in test project
 - [ ] TypeScript types work in test project
-- [ ] ESM import works: `import { ... } from '@characterforge/sdk'`
-- [ ] CJS require works: `const { ... } = require('@characterforge/sdk')`
+- [ ] ESM import works: `import { ... } from 'characterforge'`
+- [ ] CJS require works: `const { ... } = require('characterforge')`
 - [ ] React Native install works (with file system deps)
 - [ ] API key authentication works with your backend
 - [ ] Cache works (web and React Native)
@@ -158,8 +158,8 @@ Before publishing, test:
 
 Once published, your package will be available at:
 
-- npm: https://www.npmjs.com/package/@characterforge/sdk
-- Install: `npm install @characterforge/sdk`
+- npm: https://www.npmjs.com/package/characterforge
+- Install: `npm install characterforge`
 
 ## 🛠️ Maintenance
 

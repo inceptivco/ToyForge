@@ -1,4 +1,4 @@
-# Publishing Guide for @characterforge/sdk
+# Publishing Guide for characterforge
 
 This guide walks you through publishing the CharacterForge SDK to npm.
 
@@ -10,10 +10,10 @@ Before you can publish, you'll need:
    - Create an account at [npmjs.com](https://www.npmjs.com/signup)
    - Verify your email address
 
-2. **Organization Setup (Optional but Recommended)**
-   - Create an organization: `@characterforge`
-   - This allows you to publish scoped packages like `@characterforge/sdk`
-   - Organizations can have multiple maintainers and better access control
+2. **Organization Setup (Not Required)**
+   - We're using an unscoped package name: `characterforge`
+   - No organization setup needed for this approach
+   - Simpler and cleaner for users
 
 3. **Node.js & npm**
    - Ensure you have Node.js 16+ and npm 7+ installed
@@ -42,21 +42,13 @@ Verify you're logged in:
 npm whoami
 ```
 
-### 2. Configure Organization (if using scoped package)
-
-If you haven't created the `@characterforge` organization yet:
-
-1. Go to [npmjs.com](https://www.npmjs.com)
-2. Click your profile → "Add Organization"
-3. Follow the prompts to create `@characterforge`
-
-### 3. Update package.json
+### 2. Update package.json
 
 Ensure these fields are set correctly in `package.json`:
 
 ```json
 {
-  "name": "@characterforge/sdk",
+  "name": "characterforge",
   "version": "1.0.0",
   "description": "AI-powered 3D character generation SDK for web and React Native",
   "repository": {
@@ -130,7 +122,7 @@ This creates a `.tgz` file like `characterforge-sdk-1.0.0.tgz`
 #### Test in another project
 ```bash
 # In a test project directory
-npm install /path/to/characterforge-sdk-1.0.0.tgz
+npm install /path/to/characterforge-1.0.0.tgz
 
 # Or directly from the SDK directory
 npm install ../sdk
@@ -141,7 +133,7 @@ Create a test file:
 
 ```typescript
 // test.ts
-import { createCharacterForgeClient } from '@characterforge/sdk';
+import { createCharacterForgeClient } from 'characterforge';
 
 const client = createCharacterForgeClient({
   apiKey: 'test-key',
@@ -212,32 +204,28 @@ Review the output to ensure only the correct files are included.
 
 #### Publish for Real
 
-For scoped packages (first time):
-```bash
-npm publish --access public
-```
-
-For subsequent releases:
 ```bash
 npm publish
 ```
+
+Note: Since we're using an unscoped package name, we don't need the `--access public` flag.
 
 ### Step 8: Verify Publication
 
 1. Check npm:
    ```bash
-   npm view @characterforge/sdk
+   npm view characterforge
    ```
 
 2. Visit npm page:
-   - https://www.npmjs.com/package/@characterforge/sdk
+   - https://www.npmjs.com/package/characterforge
 
 3. Test installation in a fresh project:
    ```bash
    mkdir test-install
    cd test-install
    npm init -y
-   npm install @characterforge/sdk
+   npm install characterforge
    ```
 
 ## Updating the Package
@@ -274,7 +262,7 @@ npm publish
 
 ### Issue: "Package name too similar to existing package"
 
-**Solution:** npm prevents similar package names. Choose a different name or use a scope like `@characterforge/sdk`.
+**Solution:** npm prevents similar package names. Choose a different name (we're using `characterforge`).
 
 ### Issue: Build files missing in published package
 
@@ -322,7 +310,7 @@ npm publish
 If you need to deprecate a version:
 
 ```bash
-npm deprecate @characterforge/sdk@1.0.0 "This version has a critical bug. Please upgrade to 1.0.1"
+npm deprecate characterforge@1.0.0 "This version has a critical bug. Please upgrade to 1.0.1"
 ```
 
 ## Unpublishing (Use with Caution)
@@ -330,7 +318,7 @@ npm deprecate @characterforge/sdk@1.0.0 "This version has a critical bug. Please
 You can only unpublish within 72 hours of publishing:
 
 ```bash
-npm unpublish @characterforge/sdk@1.0.0
+npm unpublish characterforge@1.0.0
 ```
 
 **Warning:** Unpublishing breaks projects that depend on that version. Use deprecation instead.
@@ -367,7 +355,7 @@ For CI/CD automated publishing:
              registry-url: 'https://registry.npmjs.org'
          - run: npm ci
          - run: npm run build
-         - run: npm publish --access public
+         - run: npm publish
            env:
              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
    ```

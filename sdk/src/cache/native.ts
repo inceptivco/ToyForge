@@ -57,7 +57,6 @@ interface FileSystemAdapter {
 function getFileSystemAdapter(): FileSystemAdapter | null {
   // Try expo-file-system first
   try {
-    // @ts-expect-error - Dynamic import for optional dependency
     const ExpoFileSystem = require('expo-file-system');
     if (ExpoFileSystem?.documentDirectory) {
       return {
@@ -77,7 +76,6 @@ function getFileSystemAdapter(): FileSystemAdapter | null {
 
   // Try react-native-fs
   try {
-    // @ts-expect-error - Dynamic import for optional dependency
     const RNFS = require('react-native-fs');
     if (RNFS?.DocumentDirectoryPath) {
       return {
@@ -125,12 +123,10 @@ function getFileSystemAdapter(): FileSystemAdapter | null {
  */
 function getAsyncStorage(): any {
   try {
-    // @ts-expect-error - Dynamic import for optional dependency
     return require('@react-native-async-storage/async-storage').default;
   } catch {
     try {
       // Try legacy async storage
-      // @ts-expect-error - Dynamic import for optional dependency
       return require('react-native').AsyncStorage;
     } catch {
       return null;
