@@ -45,9 +45,12 @@ function MainApp() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      const initialUser = session?.user ?? null;
+      setUser(initialUser);
+      // Initialize ref with initial session user
+      previousUserRef.current = initialUser;
+      if (initialUser) {
+        fetchProfile(initialUser.id);
       }
       setIsAuthLoading(false);
     });

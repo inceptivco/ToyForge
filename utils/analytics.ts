@@ -40,7 +40,9 @@ export function initializeGA(): void {
     config?: Record<string, any>
   ): void {
     window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push(arguments);
+    // Convert arguments to array to avoid reference issues
+    // The arguments object is reused across calls, so we need a snapshot
+    window.dataLayer.push(Array.from(arguments));
   }
   
   window.gtag = gtag;
@@ -74,6 +76,9 @@ export function trackPageView(path: string, title?: string): void {
 
 /**
  * Track a custom event
+ * @param eventName - Name of the event
+ * @param eventParams - Event parameters
+ * @param useBeacon - If true, uses beacon API for reliable delivery during page unload
  */
 export function trackEvent(
   eventName: string,
@@ -82,13 +87,18 @@ export function trackEvent(
     label?: string;
     value?: number;
     [key: string]: any;
-  }
+  },
+  useBeacon: boolean = false
 ): void {
   if (!GA_TRACKING_ID || !window.gtag) {
     return;
   }
 
-  window.gtag('event', eventName, eventParams);
+  const params = useBeacon
+    ? { ...eventParams, transport_type: 'beacon' as const }
+    : eventParams;
+
+  window.gtag('event', eventName, params);
 }
 
 /**
@@ -128,11 +138,12 @@ export const analytics = {
   },
 
   purchaseCredits: (amount: number, credits: number) => {
+    // Use beacon transport for critical purchase events before page navigation
     trackEvent('purchase_credits', {
       category: 'monetization',
       value: amount,
       credits,
-    });
+    }, true); // true = use beacon API
   },
 
   // API usage

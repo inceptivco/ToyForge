@@ -24,11 +24,31 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
     const credits = Math.floor(parseFloat(amount || '0') / rate);
 
     const handlePurchase = async (customAmount?: number, packId?: string) => {
-        const numAmount = customAmount || parseFloat(amount);
+        // Calculate actual purchase amount and credits based on pack or custom amount
+        let actualAmount: number;
+        let actualCredits: number;
         
-        if (!packId && (isNaN(numAmount) || numAmount < 5)) {
-            alert('Minimum purchase amount is $5.00');
-            return;
+        if (packId) {
+            // Pack prices: starter = $7.50 (50 credits), pro = $20.00 (200 credits)
+            if (packId === 'starter') {
+                actualAmount = 7.50;
+                actualCredits = 50;
+            } else if (packId === 'pro') {
+                actualAmount = 20.00;
+                actualCredits = 200;
+            } else {
+                // Fallback to custom amount calculation if packId is unknown
+                actualAmount = customAmount || parseFloat(amount);
+                actualCredits = Math.floor(actualAmount / rate);
+            }
+        } else {
+            // Custom amount purchase
+            actualAmount = customAmount || parseFloat(amount);
+            if (isNaN(actualAmount) || actualAmount < 5) {
+                alert('Minimum purchase amount is $5.00');
+                return;
+            }
+            actualCredits = Math.floor(actualAmount / rate);
         }
 
         setLoading(packId || true);
@@ -36,10 +56,10 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("Please sign in first");
 
-            console.log('[CreditPurchaseModal] Invoking create-checkout:', { packId, amount: numAmount, type });
+            console.log('[CreditPurchaseModal] Invoking create-checkout:', { packId, amount: actualAmount, type });
             
             const { data, error } = await supabase.functions.invoke('create-checkout', {
-                body: packId ? { packId, type } : { amount: numAmount, type }, 
+                body: packId ? { packId, type } : { amount: actualAmount, type }, 
             });
 
             console.log('[CreditPurchaseModal] Response:', { data, error });
@@ -60,8 +80,8 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
             
             console.log('[CreditPurchaseModal] Redirecting to Stripe:', data.url);
             
-            // Track purchase initiation
-            analytics.purchaseCredits(numAmount, credits);
+            // Track purchase initiation with correct amount and credits
+            analytics.purchaseCredits(actualAmount, actualCredits);
             
             window.location.href = data.url;
         } catch (error: any) {
