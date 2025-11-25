@@ -30,30 +30,26 @@ export function initializeGA(): void {
     return;
   }
 
-  // Create dataLayer if it doesn't exist
+  // Initialize dataLayer and gtag function before loading the script
+  // This follows the standard Google Analytics initialization pattern
   window.dataLayer = window.dataLayer || [];
   
-  // Define gtag function
-  function gtag(
-    command: 'config' | 'event' | 'js' | 'set',
-    targetId: string | Date,
-    config?: Record<string, any>
-  ): void {
+  function gtag(...args: any[]): void {
     window.dataLayer = window.dataLayer || [];
-    // Convert arguments to array to avoid reference issues
-    // The arguments object is reused across calls, so we need a snapshot
-    window.dataLayer.push(Array.from(arguments));
+    window.dataLayer.push(args);
   }
   
-  window.gtag = gtag;
+  window.gtag = gtag as any;
 
-  // Initialize GA
+  // Queue initial configuration commands
+  // These will be processed when the GA script loads
   gtag('js', new Date());
   gtag('config', GA_TRACKING_ID, {
     page_path: window.location.pathname,
   });
 
-  // Load the GA script dynamically
+  // Load the GA script asynchronously
+  // When it loads, it will process the queued dataLayer commands
   const script = document.createElement('script');
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
