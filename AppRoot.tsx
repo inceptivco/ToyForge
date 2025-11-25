@@ -1,5 +1,5 @@
 // Force update: 2025-11-20T14:24:00
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useNavigate } from 'react-router-dom';
 import { Bot, Sparkles, LogOut, LayoutDashboard, User, ChevronDown } from 'lucide-react';
 import { ConfigPanel } from './components/ConfigPanel';
@@ -28,6 +28,8 @@ function MainApp() {
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const navigate = useNavigate();
+  // Use ref to track previous user value for auth state change tracking
+  const previousUserRef = useRef<any>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -51,18 +53,20 @@ function MainApp() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const previousUser = user;
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        // Track sign in if user was previously null
+      const previousUser = previousUserRef.current;
+      const newUser = session?.user ?? null;
+      setUser(newUser);
+      
+      if (newUser) {
+        fetchProfile(newUser.id);
+        // Track sign in if user was previously null (actual sign-in completion)
         if (!previousUser && event === 'SIGNED_IN') {
           analytics.signIn('magic_link');
         }
-      } else if (previousUser && event === 'SIGNED_OUT') {
-        // Sign out is already tracked in handleSignOut, but this catches other sign out scenarios
-        // Don't double-track if we already tracked it
       }
+      
+      // Update ref to current user for next comparison
+      previousUserRef.current = newUser;
       setIsAuthLoading(false);
     });
 
@@ -405,19 +409,28 @@ function PageViewTracker() {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  // Use ref to track previous user value for auth state change tracking
+  const previousUserRef = useRef<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const initialUser = session?.user ?? null;
+      setUser(initialUser);
+      previousUserRef.current = initialUser;
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const previousUser = user;
-      setUser(session?.user ?? null);
-      // Track sign in if user was previously null
-      if (!previousUser && session?.user && event === 'SIGNED_IN') {
+      const previousUser = previousUserRef.current;
+      const newUser = session?.user ?? null;
+      setUser(newUser);
+      
+      // Track sign in if user was previously null (actual sign-in completion)
+      if (!previousUser && newUser && event === 'SIGNED_IN') {
         analytics.signIn('magic_link');
       }
+      
+      // Update ref to current user for next comparison
+      previousUserRef.current = newUser;
     });
 
     return () => subscription.unsubscribe();

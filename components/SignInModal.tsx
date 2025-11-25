@@ -30,8 +30,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, redir
 
             if (error) throw error;
 
-            // Track sign in attempt
-            analytics.signIn('magic_link');
+            // Note: Sign-in tracking happens when auth state changes to SIGNED_IN
+            // after the user clicks the magic link. We don't track here to avoid
+            // double-counting (requesting a link != signing in).
 
             setMessage({
                 type: 'success',
