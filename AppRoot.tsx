@@ -407,8 +407,13 @@ function PageViewTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    // Track page view when route changes
-    trackPageView(location.pathname + location.search, document.title);
+    // Defer tracking to allow SEOHead component to update the document title
+    // SEOHead runs in its own useEffect, so we need to wait for it to complete
+    const timeoutId = setTimeout(() => {
+      trackPageView(location.pathname + location.search, document.title);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [location]);
 
   return null;
