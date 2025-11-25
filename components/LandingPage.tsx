@@ -5,6 +5,7 @@ import { ComponentDemo } from './ComponentDemo';
 import { Link } from 'react-router-dom';
 import { getStorageUrl } from '../utils/storage';
 import { SEOHead } from './SEOHead';
+import { analytics, trackEvent } from '../utils/analytics';
 
 interface LandingPageProps {
     user?: any;
@@ -32,10 +33,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                     </div>
                     <div className="flex items-center gap-8">
                         <div className="hidden md:flex items-center gap-6">
-                            <Link to="/developer/docs" className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Documentation</Link>
+                            <Link 
+                                to="/developer/docs" 
+                                onClick={() => trackEvent('nav_click', { category: 'navigation', destination: 'documentation' })}
+                                className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors"
+                            >
+                                Documentation
+                            </Link>
                         </div>
                         <Link
                             to="/app"
+                            onClick={() => trackEvent('nav_click', { category: 'navigation', destination: 'launch_app' })}
                             className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
                         >
                             Launch App
@@ -70,6 +78,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
                                 <Link
                                     to="/app"
+                                    onClick={() => trackEvent('cta_click', { category: 'landing_page', cta: 'start_creating' })}
                                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold text-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-xl shadow-red-500/30"
                                 >
                                     Start Creating <ArrowRight size={20} />
@@ -79,6 +88,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                     href="https://www.figma.com/community/plugin/1574914873471566028/characterforge-character-generator"
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    onClick={() => {
+                                        analytics.figmaAuth();
+                                        trackEvent('external_link_click', { category: 'landing_page', destination: 'figma_plugin' });
+                                    }}
                                     className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-4 bg-[#1e1e1e] hover:bg-black text-white rounded-xl border border-slate-800 transition-all hover:scale-105 shadow-lg group h-[60px]"
                                 >
                                     <div className="relative w-5 h-auto flex items-center justify-center">
@@ -99,6 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
 
                             <Link
                                 to="/developer"
+                                onClick={() => trackEvent('cta_click', { category: 'landing_page', cta: 'view_documentation' })}
                                 className="text-slate-600 hover:text-slate-900 font-medium text-sm flex items-center gap-2 transition-colors hover:underline decoration-slate-300 underline-offset-4"
                             >
                                 View Documentation
@@ -226,7 +240,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                     <span>Personal Asset Gallery</span>
                                 </li>
                             </ul>
-                            <Link to="/app" className="block w-full py-3 px-6 bg-slate-900 text-white text-center font-bold rounded-xl hover:bg-slate-800 transition-colors">
+                            <Link 
+                                to="/app" 
+                                onClick={() => trackEvent('cta_click', { category: 'pricing', cta: 'launch_app' })}
+                                className="block w-full py-3 px-6 bg-slate-900 text-white text-center font-bold rounded-xl hover:bg-slate-800 transition-colors"
+                            >
                                 Launch App
                             </Link>
                         </div>
@@ -265,7 +283,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                     <span>React & React Native SDKs</span>
                                 </li>
                             </ul>
-                            <Link to="/developer" className="block w-full py-3 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-center font-bold rounded-xl transition-all shadow-lg shadow-red-500/30">
+                            <Link 
+                                to="/developer" 
+                                onClick={() => trackEvent('cta_click', { category: 'pricing', cta: 'get_api_keys' })}
+                                className="block w-full py-3 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-center font-bold rounded-xl transition-all shadow-lg shadow-red-500/30"
+                            >
                                 Get API Keys
                             </Link>
                         </div>
@@ -316,7 +338,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                             </div>
 
                             <div className="mt-12">
-                                <Link to="/developer" className="text-brand-400 hover:text-brand-300 font-bold flex items-center gap-2 group text-lg">
+                                <Link 
+                                    to="/developer" 
+                                    onClick={() => trackEvent('cta_click', { category: 'api_section', cta: 'get_api_key' })}
+                                    className="text-brand-400 hover:text-brand-300 font-bold flex items-center gap-2 group text-lg"
+                                >
                                     Get API Key <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </Link>
                             </div>

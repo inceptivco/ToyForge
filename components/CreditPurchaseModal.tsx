@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { X, Check, Zap, Crown, Loader2 } from 'lucide-react';
+import { analytics } from '../utils/analytics';
 
 interface CreditPurchaseModalProps {
     isOpen: boolean;
@@ -58,6 +59,10 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
             }
             
             console.log('[CreditPurchaseModal] Redirecting to Stripe:', data.url);
+            
+            // Track purchase initiation
+            analytics.purchaseCredits(numAmount, credits);
+            
             window.location.href = data.url;
         } catch (error: any) {
             console.error('[CreditPurchaseModal] Purchase failed:', error);

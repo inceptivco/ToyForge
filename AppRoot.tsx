@@ -15,6 +15,7 @@ import { CharacterConfig } from './types';
 import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS, AGE_GROUPS } from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
 import { supabase } from './services/supabase';
+import { trackPageView, analytics, trackEvent } from './utils/analytics';
 
 function MainApp() {
   const [config, setConfig] = useState<CharacterConfig>(DEFAULT_CONFIG);
@@ -49,10 +50,18 @@ function MainApp() {
       setIsAuthLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const previousUser = user;
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+        // Track sign in if user was previously null
+        if (!previousUser && event === 'SIGNED_IN') {
+          analytics.signIn('magic_link');
+        }
+      } else if (previousUser && event === 'SIGNED_OUT') {
+        // Sign out is already tracked in handleSignOut, but this catches other sign out scenarios
+        // Don't double-track if we already tracked it
       }
       setIsAuthLoading(false);
     });
@@ -138,6 +147,14 @@ function MainApp() {
 
     try {
       const configWithNoCache = { ...config, cache: false };
+      
+      // Track generation start
+      analytics.generateCharacter({
+        gender: config.gender,
+        ageGroup: config.ageGroup,
+        transparent: config.transparent !== false,
+      });
+      
       const imageUrl = await generateCharacterPipeline(configWithNoCache, (status) => console.log(status));
       if (imageUrl) {
         setGeneratedImage(imageUrl);
@@ -146,9 +163,23 @@ function MainApp() {
         if (user) {
           fetchProfile(user.id);
         }
+        
+        // Track successful generation
+        trackEvent('character_generated', {
+          category: 'character_generation',
+          success: true,
+        });
       }
     } catch (error: any) {
       console.error("Generation failed:", error);
+      
+      // Track generation failure
+      trackEvent('character_generation_failed', {
+        category: 'character_generation',
+        error_type: error?.message?.includes('logged in') ? 'auth_required' : 
+                   error?.message?.includes('credits') ? 'insufficient_credits' : 'unknown',
+      });
+      
       // Check if it's an auth error
       if (error?.message?.includes('logged in')) {
         setIsSignInOpen(true);
@@ -165,9 +196,14 @@ function MainApp() {
 
   const handleRandomize = () => {
     setConfig(getRandomConfig());
+    // Track randomize button click
+    trackEvent('randomize_config', {
+      category: 'character_config',
+    });
   };
 
   const handleSignOut = async () => {
+    analytics.signOut();
     await supabase.auth.signOut();
     navigate('/');
   };
@@ -206,7 +242,10 @@ function MainApp() {
             {/* Credits Display */}
             {user && (
               <button
-                onClick={() => setIsBuyCreditsOpen(true)}
+                onClick={() => {
+                  analytics.viewCredits();
+                  setIsBuyCreditsOpen(true);
+                }}
                 className="group/credits flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-slate-200 hover:border-red-300 hover:bg-red-50 transition-all shadow-sm cursor-pointer"
               >
                 <Sparkles size={16} className="text-amber-500 fill-amber-500" />
@@ -351,6 +390,18 @@ function MainApp() {
   );
 }
 
+// Component to track page views on route changes
+function PageViewTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track page view when route changes
+    trackPageView(location.pathname + location.search, document.title);
+  }, [location]);
+
+  return null;
+}
+
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
@@ -360,8 +411,13 @@ export default function App() {
       setUser(session?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const previousUser = user;
       setUser(session?.user ?? null);
+      // Track sign in if user was previously null
+      if (!previousUser && session?.user && event === 'SIGNED_IN') {
+        analytics.signIn('magic_link');
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -374,6 +430,7 @@ export default function App() {
         v7_relativeSplatPath: true,
       }}
     >
+      <PageViewTracker />
       <Routes>
         <Route path="/" element={<LandingPage user={user} onSignInClick={() => setIsSignInOpen(true)} />} />
         <Route path="/app" element={<MainApp />} />

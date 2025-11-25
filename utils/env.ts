@@ -18,6 +18,7 @@ interface EnvConfig {
 
 interface OptionalEnvConfig {
   GEMINI_API_KEY?: string;
+  VITE_GA_TRACKING_ID?: string;
 }
 
 type EnvKey = keyof EnvConfig;

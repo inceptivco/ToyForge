@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Key, Trash2, Copy, Check, Plus, AlertTriangle, X } from 'lucide-react';
+import { analytics } from '../utils/analytics';
 
 interface ApiKey {
     id: string;
@@ -74,6 +75,10 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange }) =>
             }
 
             console.log('[ApiKeyManager] Key created successfully');
+            
+            // Track API key creation
+            analytics.createApiKey();
+            
             setNewKey(data.apiKey);
             setLabel('');
             await fetchKeys();

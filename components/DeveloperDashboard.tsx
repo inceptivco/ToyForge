@@ -21,6 +21,7 @@ import { DocsView } from './DocsView';
 import { getMagicLinkRedirectUrl } from '../utils/redirect';
 import { DashboardOverview } from './DashboardOverview';
 import { SignInModal } from './SignInModal';
+import { analytics } from '../utils/analytics';
 
 export const DeveloperDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -175,6 +176,7 @@ export const DeveloperDashboard: React.FC = () => {
     }, [user, isCheckingAuth, location.pathname, navigate]);
 
     const handleSignOut = async () => {
+        analytics.signOut();
         await supabase.auth.signOut();
         navigate('/');
     };
@@ -244,6 +246,7 @@ export const DeveloperDashboard: React.FC = () => {
                             <>
                                 <Link
                                     to="/developer"
+                                    onClick={() => analytics.viewDashboard('overview')}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer'
                                         ? 'bg-brand-50 text-brand-700 font-medium shadow-sm ring-1 ring-brand-200'
                                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -254,6 +257,7 @@ export const DeveloperDashboard: React.FC = () => {
                                 </Link>
                                 <Link
                                     to="/developer/billing"
+                                    onClick={() => analytics.viewDashboard('billing')}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer/billing'
                                         ? 'bg-brand-50 text-brand-700 font-medium shadow-sm ring-1 ring-brand-200'
                                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -267,6 +271,7 @@ export const DeveloperDashboard: React.FC = () => {
                         <div>
                             <Link
                                 to="/developer/docs"
+                                onClick={() => analytics.viewDashboard('docs')}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer/docs'
                                     ? user 
                                         ? 'bg-brand-50 text-brand-700 font-medium shadow-sm'
@@ -288,6 +293,7 @@ export const DeveloperDashboard: React.FC = () => {
                         {user && (
                             <Link
                                 to="/developer/settings"
+                                onClick={() => analytics.viewDashboard('settings')}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${location.pathname === '/developer/settings'
                                     ? 'bg-brand-50 text-brand-700 font-medium shadow-sm ring-1 ring-brand-200'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'

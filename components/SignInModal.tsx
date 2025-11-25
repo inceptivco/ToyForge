@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { getMagicLinkRedirectUrl } from '../utils/redirect';
+import { analytics } from '../utils/analytics';
 
 interface SignInModalProps {
     isOpen: boolean;
@@ -28,6 +29,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, redir
             });
 
             if (error) throw error;
+
+            // Track sign in attempt
+            analytics.signIn('magic_link');
 
             setMessage({
                 type: 'success',
