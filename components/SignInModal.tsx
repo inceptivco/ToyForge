@@ -120,7 +120,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, redir
                             {message.text}
                         </div>
                         <div className="text-center text-sm text-slate-500">
-                            No password required. We'll send you a secure link to sign in.
+                            <p className="mb-2">No password required. We'll send you a secure link to sign in.</p>
+                            <p className="text-slate-400 italic">If you don't see the email, please check your spam or junk folder.</p>
                         </div>
                     </div>
                 )}
