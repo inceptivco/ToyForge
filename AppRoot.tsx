@@ -69,10 +69,8 @@ function MainApp() {
       
       if (newUser) {
         fetchProfile(newUser.id);
-        // Track sign in if user was previously null (actual sign-in completion)
-        if (!previousUser && event === 'SIGNED_IN') {
-          analytics.signIn('magic_link');
-        }
+        // Note: Sign-in tracking is handled in the root App component
+        // to avoid duplicate tracking when both App and MainApp are mounted
       }
       
       // Update ref to current user for next comparison

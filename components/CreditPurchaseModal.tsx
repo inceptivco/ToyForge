@@ -29,13 +29,15 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
         let actualCredits: number;
         
         if (packId) {
-            // Pack prices: starter = $7.50 (50 credits), pro = $20.00 (200 credits)
+            // Pack prices based on type (API vs App rate)
+            // Starter: $7.50, Pro: $20.00
+            // Credits calculated using the appropriate rate
             if (packId === 'starter') {
                 actualAmount = 7.50;
-                actualCredits = 50;
+                actualCredits = Math.floor(actualAmount / rate);
             } else if (packId === 'pro') {
                 actualAmount = 20.00;
-                actualCredits = 200;
+                actualCredits = Math.floor(actualAmount / rate);
             } else {
                 // Fallback to custom amount calculation if packId is unknown
                 actualAmount = customAmount || parseFloat(amount);
