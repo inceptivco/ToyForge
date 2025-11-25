@@ -78,7 +78,7 @@ export function trackPageView(path: string, title?: string): void {
  * Track a custom event
  * @param eventName - Name of the event
  * @param eventParams - Event parameters
- * @param useBeacon - If true, uses beacon API for reliable delivery during page unload
+ * @param useBeacon - If true, configures beacon transport for reliable delivery during page unload
  */
 export function trackEvent(
   eventName: string,
@@ -94,11 +94,26 @@ export function trackEvent(
     return;
   }
 
-  const params = useBeacon
-    ? { ...eventParams, transport_type: 'beacon' as const }
-    : eventParams;
+  if (useBeacon && GA_TRACKING_ID) {
+    // Configure beacon transport for this event
+    // Beacon transport must be set via config before the event
+    window.gtag('config', GA_TRACKING_ID, {
+      transport_type: 'beacon',
+    });
+  }
 
-  window.gtag('event', eventName, params);
+  // Send the event
+  window.gtag('event', eventName, eventParams);
+
+  if (useBeacon && GA_TRACKING_ID) {
+    // Reset transport_type after sending beacon event to avoid affecting other events
+    // Use setTimeout to ensure the event is sent before resetting
+    setTimeout(() => {
+      window.gtag('config', GA_TRACKING_ID, {
+        transport_type: undefined,
+      });
+    }, 0);
+  }
 }
 
 /**

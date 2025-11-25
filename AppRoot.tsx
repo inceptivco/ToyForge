@@ -44,16 +44,23 @@ function MainApp() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const initialUser = session?.user ?? null;
-      setUser(initialUser);
-      // Initialize ref with initial session user
-      previousUserRef.current = initialUser;
-      if (initialUser) {
-        fetchProfile(initialUser.id);
-      }
-      setIsAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        const initialUser = session?.user ?? null;
+        setUser(initialUser);
+        // Initialize ref with initial session user
+        previousUserRef.current = initialUser;
+        if (initialUser) {
+          fetchProfile(initialUser.id);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to get session:', error);
+        // Still set loading to false even on error to prevent stuck loading state
+      })
+      .finally(() => {
+        setIsAuthLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const previousUser = previousUserRef.current;
@@ -416,11 +423,15 @@ export default function App() {
   const previousUserRef = useRef<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const initialUser = session?.user ?? null;
-      setUser(initialUser);
-      previousUserRef.current = initialUser;
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        const initialUser = session?.user ?? null;
+        setUser(initialUser);
+        previousUserRef.current = initialUser;
+      })
+      .catch((error) => {
+        console.error('Failed to get session:', error);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const previousUser = previousUserRef.current;

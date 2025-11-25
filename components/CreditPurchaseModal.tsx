@@ -39,6 +39,11 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
             } else {
                 // Fallback to custom amount calculation if packId is unknown
                 actualAmount = customAmount || parseFloat(amount);
+                // Validate fallback amount to prevent NaN values
+                if (isNaN(actualAmount) || actualAmount < 5) {
+                    alert('Invalid pack ID or amount. Minimum purchase amount is $5.00');
+                    return;
+                }
                 actualCredits = Math.floor(actualAmount / rate);
             }
         } else {
@@ -49,6 +54,13 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
                 return;
             }
             actualCredits = Math.floor(actualAmount / rate);
+        }
+
+        // Final validation to ensure we never pass invalid values to analytics
+        if (isNaN(actualAmount) || isNaN(actualCredits) || actualAmount <= 0 || actualCredits <= 0) {
+            console.error('[CreditPurchaseModal] Invalid purchase values calculated:', { actualAmount, actualCredits, packId, customAmount, amount });
+            alert('Invalid purchase amount. Please try again.');
+            return;
         }
 
         setLoading(packId || true);
