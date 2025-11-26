@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { trackPageView } from '../utils/analytics';
 
 interface SEOHeadProps {
   title?: string;
@@ -31,6 +32,10 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   useEffect(() => {
     // Update document title
     document.title = title;
+    
+    // Track page view after title is updated
+    // This ensures GA receives the correct title for the current page
+    trackPageView(location.pathname + location.search, title);
 
     // Update or create meta tags
     const updateMetaTag = (name: string, content: string, isProperty = false) => {

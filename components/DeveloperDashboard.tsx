@@ -21,6 +21,7 @@ import { DocsView } from './DocsView';
 import { getMagicLinkRedirectUrl } from '../utils/redirect';
 import { DashboardOverview } from './DashboardOverview';
 import { SignInModal } from './SignInModal';
+import { SEOHead } from './SEOHead';
 import { analytics } from '../utils/analytics';
 
 export const DeveloperDashboard: React.FC = () => {
@@ -217,6 +218,11 @@ export const DeveloperDashboard: React.FC = () => {
 
     return (
         <>
+            <SEOHead
+                title="Developer Dashboard - CharacterForge"
+                description="Manage your CharacterForge API keys, usage, and billing."
+                url="https://characterforge.app/developer"
+            />
             <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
                 {/* Mobile Menu Overlay */}
                 {isMobileMenuOpen && (

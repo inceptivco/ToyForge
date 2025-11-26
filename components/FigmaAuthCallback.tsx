@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Bot, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { SEOHead } from './SEOHead';
 
 type Status = 'loading' | 'success' | 'error';
 
@@ -143,7 +144,13 @@ export const FigmaAuthCallback: React.FC = () => {
   }, [authCode]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <>
+      <SEOHead
+        title="Authentication - CharacterForge"
+        description="Completing authentication for CharacterForge"
+        url="https://characterforge.app/figma-auth"
+      />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
         {/* Logo */}
         <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-red-500/30">
@@ -204,5 +211,6 @@ export const FigmaAuthCallback: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };

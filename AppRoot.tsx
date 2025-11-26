@@ -11,6 +11,7 @@ import { SignInModal } from './components/SignInModal';
 import { FigmaAuthCallback } from './components/FigmaAuthCallback';
 import { TermsPage } from './components/TermsPage';
 import { PrivacyPage } from './components/PrivacyPage';
+import { SEOHead } from './components/SEOHead';
 import { CharacterConfig } from './types';
 import { DEFAULT_CONFIG, SKIN_TONES, HAIR_STYLES, HAIR_COLORS, CLOTHING_ITEMS, CLOTHING_COLORS, ACCESSORIES, EYE_COLORS, AGE_GROUPS } from './constants';
 import { generateCharacterPipeline } from './services/geminiService';
@@ -234,9 +235,15 @@ function MainApp() {
   // }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-red-100 selection:text-red-900">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 z-50 transition-all duration-300">
+    <>
+      <SEOHead
+        title="CharacterForge App - Create AI Characters"
+        description="Create unique 3D characters and avatars with AI. Customize and generate production-ready character assets instantly."
+        url="https://characterforge.app/app"
+      />
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-red-100 selection:text-red-900">
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/60 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="relative">
@@ -399,25 +406,12 @@ function MainApp() {
         onClose={() => setIsSignInOpen(false)}
       />
     </div>
+    </>
   );
 }
 
-// Component to track page views on route changes
-function PageViewTracker() {
-  const location = useLocation();
-
-  useEffect(() => {
-    // Defer tracking to allow SEOHead component to update the document title
-    // SEOHead runs in its own useEffect, so we need to wait for it to complete
-    const timeoutId = setTimeout(() => {
-      trackPageView(location.pathname + location.search, document.title);
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [location]);
-
-  return null;
-}
+// Note: Page view tracking is now handled by the SEOHead component
+// to ensure the correct page title is tracked after it's updated
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -460,7 +454,6 @@ export default function App() {
         v7_relativeSplatPath: true,
       }}
     >
-      <PageViewTracker />
       <Routes>
         <Route path="/" element={<LandingPage user={user} onSignInClick={() => setIsSignInOpen(true)} />} />
         <Route path="/app" element={<MainApp />} />
