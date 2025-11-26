@@ -43,9 +43,8 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
                 }
             } else if (packId === 'pro') {
                 actualAmount = 20.00;
-                // Pro pack uses discounted rate of $0.10/gen regardless of purchase type
-                const proPackRate = 0.10;
-                actualCredits = Math.floor(actualAmount / proPackRate);
+                // Pro pack: $20.00 for 200 credits (hardcoded to match server-side and avoid floating-point precision issues)
+                actualCredits = 200;
             } else {
                 // Fallback to custom amount calculation if packId is unknown
                 actualAmount = customAmount || parseFloat(amount);

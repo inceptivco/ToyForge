@@ -45,12 +45,15 @@ function MainApp() {
   };
 
   useEffect(() => {
+    let isInitialized = false;
+    
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         const initialUser = session?.user ?? null;
         setUser(initialUser);
-        // Initialize ref with initial session user
+        // Initialize ref with initial session user before listener can fire
         previousUserRef.current = initialUser;
+        isInitialized = true;
         if (initialUser) {
           fetchProfile(initialUser.id);
         }
@@ -58,6 +61,7 @@ function MainApp() {
       .catch((error) => {
         console.error('Failed to get session:', error);
         // Still set loading to false even on error to prevent stuck loading state
+        isInitialized = true;
       })
       .finally(() => {
         setIsAuthLoading(false);
@@ -75,7 +79,14 @@ function MainApp() {
       }
       
       // Update ref to current user for next comparison
-      previousUserRef.current = newUser;
+      // Only update if we've initialized, otherwise this is the initial sync
+      if (isInitialized) {
+        previousUserRef.current = newUser;
+      } else {
+        // This is the initial sync from onAuthStateChange, set ref to match
+        previousUserRef.current = newUser;
+        isInitialized = true;
+      }
       setIsAuthLoading(false);
     });
 
@@ -420,14 +431,19 @@ export default function App() {
   const previousUserRef = useRef<any>(null);
 
   useEffect(() => {
+    let isInitialized = false;
+    
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         const initialUser = session?.user ?? null;
         setUser(initialUser);
+        // Initialize ref with initial session user before listener can fire
         previousUserRef.current = initialUser;
+        isInitialized = true;
       })
       .catch((error) => {
         console.error('Failed to get session:', error);
+        isInitialized = true;
       });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -435,13 +451,20 @@ export default function App() {
       const newUser = session?.user ?? null;
       setUser(newUser);
       
-      // Track sign in if user was previously null (actual sign-in completion)
-      if (!previousUser && newUser && event === 'SIGNED_IN') {
+      // Only track sign-in if we've initialized and this is an actual state change
+      // Ignore the initial sync fire from onAuthStateChange
+      if (isInitialized && !previousUser && newUser && event === 'SIGNED_IN') {
         analytics.signIn('magic_link');
       }
       
       // Update ref to current user for next comparison
-      previousUserRef.current = newUser;
+      // If not initialized yet, this is the initial sync - set ref but don't track
+      if (!isInitialized) {
+        previousUserRef.current = newUser;
+        isInitialized = true;
+      } else {
+        previousUserRef.current = newUser;
+      }
     });
 
     return () => subscription.unsubscribe();
