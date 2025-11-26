@@ -10,6 +10,7 @@ import {
   sha256Hash,
   validateCharacterConfig,
   HTTP_STATUS,
+  createLogger,
 } from '../_shared/index.ts';
 
 // Fix: Declare Deno global
@@ -78,6 +79,7 @@ Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
 Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
+Do not add any earbuds, earphones, or in-ear devices.
 `;
 
 const PROMPT_MAPS = {
@@ -177,15 +179,19 @@ const ACCESSORY_CONFLICTS = new Map<string, string>([
   ['beanie', 'cap'],
 ]);
 
+const ALL_ACCESSORIES = [
+  "glasses",
+  "sunglasses",
+  "headphones",
+  "cap",
+  "beanie"
+];
+
 // ============================================================================
 // Logger
 // ============================================================================
 
-const logger = {
-  info: (msg: string, ...args: any[]) => console.log(`[generate-character] ${msg}`, ...args),
-  warn: (msg: string, ...args: any[]) => console.warn(`[generate-character] ${msg}`, ...args),
-  error: (msg: string, ...args: any[]) => console.error(`[generate-character] ${msg}`, ...args),
-};
+const logger = createLogger('generate-character');
 
 // ============================================================================
 // Utility Functions
@@ -366,67 +372,153 @@ function normalizeAccessories(accessories: string | string[] | undefined): strin
   return resolveAccessoryConflicts(validAccessories);
 }
 
+function buildAccessoryConstraintsDynamic(validAccessories: string[]): string[] {
+  const c: string[] = [];
+  const allowed = new Set(validAccessories);
+  const forbidden = ALL_ACCESSORIES.filter(a => !allowed.has(a));
+
+  //
+  // GLOBAL BANS (always apply)
+  //
+  c.push(
+    "Absolutely no earbuds, no earphones, no in-ear devices, no AirPods, and no small objects touching or inserted into the ears.",
+    "No earrings or pierced ear accessories of any kind.",
+    "No microphones, headsets, lav mics, boom mics, or talk-back mics.",
+    "No hair clips, bows, barrettes, headbands, or decorative hair accessories.",
+  );
+
+  //
+  // ALLOWED ACCESSORIES – detailed rules
+  //
+  if (allowed.has("sunglasses")) {
+    c.push(
+      "Only one single pair of sunglasses may appear.",
+      "Sunglasses must be worn on the face covering the eyes.",
+      "Never place sunglasses on the head, hat, beanie, or clothing.",
+      "Do not generate a second pair of sunglasses anywhere."
+    );
+  }
+
+  if (allowed.has("glasses")) {
+    c.push(
+      "Only one single pair of eyeglasses may appear.",
+      "No sunglasses may appear unless explicitly selected.",
+      "Eyeglasses must sit naturally on the face."
+    );
+  }
+
+  if (allowed.has("headphones")) {
+    c.push(
+      "Only one single pair of headphones may appear.",
+      "Headphones must appear around the neck as described.",
+      "Do not place headphones on the head.",
+      "No second pair of headphones may appear.",
+      "No earbuds or earphones may appear at all."
+    );
+  }
+
+  if (allowed.has("cap")) {
+    c.push(
+      "Cap must face forward with the visor pointing forward.",
+      "Cap must not show any rear strap or opening.",
+      "No sunglasses may appear on top of the cap.",
+      "Do not combine the cap with a beanie unless explicitly selected."
+    );
+  }
+
+  if (allowed.has("beanie")) {
+    c.push(
+      "Beanie must appear snugly on the head.",
+      "No cap may appear.",
+      "Do not place sunglasses or glasses on top of the beanie."
+    );
+  }
+
+  //
+  // FORBIDDEN ACCESSORIES
+  //
+  forbidden.forEach(a => {
+    c.push(`No ${a} should appear anywhere in the image.`);
+  });
+
+  //
+  // If nothing selected at all
+  //
+  if (allowed.size === 0) {
+    c.push(
+      "No glasses, no sunglasses, no hats, no caps, no beanies, no headphones, and no wearable accessories of any kind."
+    );
+  }
+
+  return c;
+}
+
 function buildCharacterPrompt(config: CharacterConfig): string {
   const ageGroup = config.ageGroup || 'teen';
-  const agePrompt = PROMPT_MAPS.AGE_GROUPS[ageGroup as keyof typeof PROMPT_MAPS.AGE_GROUPS] || PROMPT_MAPS.AGE_GROUPS['teen'];
-  
-  const skinTonePrompt = PROMPT_MAPS.SKIN_TONES[config.skinTone as keyof typeof PROMPT_MAPS.SKIN_TONES] || PROMPT_MAPS.SKIN_TONES['medium'];
-  const eyeColorPrompt = PROMPT_MAPS.EYE_COLORS[config.eyeColor as keyof typeof PROMPT_MAPS.EYE_COLORS] || 'dark';
-  const hairStylePrompt = PROMPT_MAPS.HAIR_STYLES[config.hairStyle as keyof typeof PROMPT_MAPS.HAIR_STYLES] || PROMPT_MAPS.HAIR_STYLES['messy'];
-  const hairColorPrompt = PROMPT_MAPS.HAIR_COLORS[config.hairColor as keyof typeof PROMPT_MAPS.HAIR_COLORS] || 'brown';
-  const clothingColorPrompt = PROMPT_MAPS.CLOTHING_COLORS[config.clothingColor as keyof typeof PROMPT_MAPS.CLOTHING_COLORS] || 'white';
-  const clothingItemPrompt = PROMPT_MAPS.CLOTHING_ITEMS[config.clothing as keyof typeof PROMPT_MAPS.CLOTHING_ITEMS] || 't-shirt';
+  const agePrompt = PROMPT_MAPS.AGE_GROUPS[ageGroup as keyof typeof PROMPT_MAPS.AGE_GROUPS]
+    || PROMPT_MAPS.AGE_GROUPS['teen'];
 
+  const skinTonePrompt =
+    PROMPT_MAPS.SKIN_TONES[config.skinTone as keyof typeof PROMPT_MAPS.SKIN_TONES] ||
+    PROMPT_MAPS.SKIN_TONES['medium'];
+
+  const eyeColorPrompt =
+    PROMPT_MAPS.EYE_COLORS[config.eyeColor as keyof typeof PROMPT_MAPS.EYE_COLORS] || "dark";
+
+  const hairStylePrompt =
+    PROMPT_MAPS.HAIR_STYLES[config.hairStyle as keyof typeof PROMPT_MAPS.HAIR_STYLES] ||
+    PROMPT_MAPS.HAIR_STYLES['messy'];
+
+  const hairColorPrompt =
+    PROMPT_MAPS.HAIR_COLORS[config.hairColor as keyof typeof PROMPT_MAPS.HAIR_COLORS] || "brown";
+
+  const clothingColorPrompt =
+    PROMPT_MAPS.CLOTHING_COLORS[config.clothingColor as keyof typeof PROMPT_MAPS.CLOTHING_COLORS] ||
+    "white";
+
+  const clothingItemPrompt =
+    PROMPT_MAPS.CLOTHING_ITEMS[config.clothing as keyof typeof PROMPT_MAPS.CLOTHING_ITEMS] ||
+    "t-shirt";
+
+  //
+  // Accessory normalization + dynamic constraints
+  //
   const validAccessories = normalizeAccessories(config.accessories);
-  
-  const accessoryPrompt = validAccessories.length > 0
-    ? validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
-    : '';
+  const accessoryText = validAccessories.length
+    ? validAccessories
+        .map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a)
+        .join(" and ")
+    : "";
 
-  const expressionPrompt = Math.random() > 0.5 
-    ? 'a happy smiling expression' 
-    : 'a confident smirk';
+  const accessoryConstraints = buildAccessoryConstraintsDynamic(validAccessories);
 
-  // Build constraint prompt for accessories + general guardrails
-  const constraints: string[] = [];
-  if (validAccessories.length === 0) {
-    constraints.push('No glasses. No sunglasses. No hats. No accessories.');
-  } else {
-    if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
-      constraints.push('No glasses or sunglasses other than what is described.');
-    }
-    if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
-      constraints.push('No hats other than what is described.');
-    }
-    if (!validAccessories.includes('headphones')) {
-      constraints.push('No headphones other than what is described.');
-    }
-    if (validAccessories.includes('sunglasses')) {
-      constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
-    }
-    if (validAccessories.includes('cap')) {
-      constraints.push('Cap must face forward with visor in front; do not show any rear opening, strap, or backwards orientation.');
-    }
-  }
-  constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
+  //
+  // Expression randomization
+  //
+  const expressionPrompt =
+    Math.random() > 0.5
+      ? "a happy smiling expression"
+      : "a confident smirk";
 
-  const accessorialPrompt = accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : '';
-  const constraintPrompt = constraints.length > 0 ? `Constraints: ${constraints.join(' ')}` : '';
-
+  //
+  // Compose subject prompt
+  //
   const subjectPrompt = `
     A cute 3D vinyl toy character.
     View: Direct front view. Facing camera.
-    Gender: ${config.gender || 'female'}.
+    Gender: ${config.gender || "female"}.
     Age: ${agePrompt}.
     Skin: ${skinTonePrompt}.
     Eyes: Large circular ${eyeColorPrompt} eyes.
     Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
     Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
     Expression: ${expressionPrompt}.
-    ${accessorialPrompt}
-    ${constraintPrompt}
+    ${accessoryText ? `Accessories: ${accessoryText}.` : ""}
+    Constraints: ${accessoryConstraints.join(" ")}
+    Absolutely no text, no numbers, no watermarks, no stickers, no UI elements, and no logos anywhere in the image.
+    The ears must remain fully natural and unobstructed with nothing covering, touching, or entering the ears.
   `;
-  
+
   logger.info('Generated prompt:', subjectPrompt);
   
   return `${STYLE_PROMPT} ${subjectPrompt}`;
