@@ -77,8 +77,7 @@ Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny
 Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
-
-CRITICAL: The character's ears must be completely empty and bare. Do NOT add anything to or around the ears unless headphones are explicitly specified.
+Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
 `;
 
 const PROMPT_MAPS = {
@@ -156,11 +155,11 @@ const PROMPT_MAPS = {
   },
   ACCESSORIES: {
     'none': '',
-    'glasses': 'wearing black-framed eyeglasses on the face',
+    'glasses': 'wearing thick black rimmed glasses',
     'sunglasses': 'wearing exactly ONE single pair of sunglasses on the face covering the eyes. NOT on top of head. NOT multiple pairs. ONLY one pair on face.',
-    'headphones': 'wearing large over-ear headphones positioned around the neck below the chin. These are OVER-EAR headphones, NOT earbuds, NOT airpods, NOT in-ear devices.',
-    'cap': 'wearing a baseball cap positioned on the head with the visor/brim facing forward toward the camera and extending out over the forehead. The cap sits on the head covering all hair completely.',
-    'beanie': 'wearing a knit beanie hat positioned on the head covering all hair completely',
+    'headphones': 'wearing large headphones around the neck',
+    'cap': 'wearing a front-facing baseball cap with the visor pointing forward, solid front panel, and zero visibility of any rear strap, opening, or adjustment hardware',
+    'beanie': 'wearing a knit beanie hat',
   },
   AGE_GROUPS: {
     'kid': 'Childlike proportions with larger head-to-body ratio (1:3), very round soft features, big innocent eyes, button nose, gentle expression',
@@ -171,12 +170,11 @@ const PROMPT_MAPS = {
   }
 } as const;
 
-const ACCESSORY_CONFLICTS = new Map<string, string[]>([
-  ['glasses', ['sunglasses']],
-  ['sunglasses', ['glasses']],
-  ['cap', ['beanie', 'headphones']],
-  ['beanie', ['cap', 'headphones']],
-  ['headphones', ['cap', 'beanie']],
+const ACCESSORY_CONFLICTS = new Map<string, string>([
+  ['glasses', 'sunglasses'],
+  ['sunglasses', 'glasses'],
+  ['cap', 'beanie'],
+  ['beanie', 'cap'],
 ]);
 
 // ============================================================================
@@ -264,29 +262,14 @@ async function checkCredits(
   userId: string,
   creditType: CreditType
 ): Promise<void> {
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('credits_balance, api_credits_balance')
     .eq('id', userId)
     .single();
 
-  if (profileError) {
-    logger.error('Failed to fetch profile:', profileError);
-    // PGRST116 means no rows found
-    if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows')) {
-      const error: any = new Error('User profile not found. Please contact support.');
-      error.statusCode = HTTP_STATUS.NOT_FOUND;
-      throw error;
-    }
-    const error: any = new Error('Failed to check credits: ' + profileError.message);
-    error.statusCode = HTTP_STATUS.INTERNAL_ERROR;
-    throw error;
-  }
-
   if (!profile) {
-    const error: any = new Error('User profile not found. Please contact support.');
-    error.statusCode = HTTP_STATUS.NOT_FOUND;
-    throw error;
+    throw new Error('User profile not found');
   }
 
   const creditBalance = creditType === 'api' 
@@ -365,8 +348,8 @@ function resolveAccessoryConflicts(accessories: string[]): string[] {
   const seen = new Set<string>();
   
   return accessories.filter(accessory => {
-    const conflicts = ACCESSORY_CONFLICTS.get(accessory) || [];
-    if (conflicts.some(conflict => seen.has(conflict))) {
+    const conflict = ACCESSORY_CONFLICTS.get(accessory);
+    if (conflict && seen.has(conflict)) {
       return false;
     }
     seen.add(accessory);
@@ -383,38 +366,6 @@ function normalizeAccessories(accessories: string | string[] | undefined): strin
   return resolveAccessoryConflicts(validAccessories);
 }
 
-function stableConfigSignature(config: CharacterConfig): string {
-  const entries = Object.entries(config)
-    .filter(([key]) => key !== 'cache')
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  return entries
-    .map(([key, value]) => {
-      if (Array.isArray(value)) {
-        return `${key}=[${value.join(',')}]`;
-      }
-      if (value === undefined || value === null) {
-        return `${key}=null`;
-      }
-      return `${key}=${String(value)}`;
-    })
-    .join('|');
-}
-
-function deterministicChoice<T>(items: T[], signature: string): T {
-  if (items.length === 0) {
-    throw new Error('deterministicChoice requires a non-empty items array');
-  }
-
-  let hash = 0;
-  for (let i = 0; i < signature.length; i++) {
-    hash = (hash * 31 + signature.charCodeAt(i)) >>> 0;
-  }
-
-  const index = hash % items.length;
-  return items[index];
-}
-
 function buildCharacterPrompt(config: CharacterConfig): string {
   const ageGroup = config.ageGroup || 'teen';
   const agePrompt = PROMPT_MAPS.AGE_GROUPS[ageGroup as keyof typeof PROMPT_MAPS.AGE_GROUPS] || PROMPT_MAPS.AGE_GROUPS['teen'];
@@ -428,103 +379,57 @@ function buildCharacterPrompt(config: CharacterConfig): string {
 
   const validAccessories = normalizeAccessories(config.accessories);
   
-  logger.info('Normalized accessories:', validAccessories);
-  
-  // Separate hat accessories from non-hat accessories
-  const hatAccessories = validAccessories.filter(a => a === 'cap' || a === 'beanie');
-  const nonHatAccessories = validAccessories.filter(a => a !== 'cap' && a !== 'beanie');
-  
-  const hatPrompt = hatAccessories.length > 0
-    ? hatAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
+  const accessoryPrompt = validAccessories.length > 0
+    ? validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
     : '';
 
-  const expressionPrompt = deterministicChoice(
-    [
-      'a happy smiling expression',
-      'a confident smirk',
-      'a calm relaxed expression',
-    ],
-    stableConfigSignature(config)
-  );
+  const expressionPrompt = Math.random() > 0.5 
+    ? 'a happy smiling expression' 
+    : 'a confident smirk';
 
-  // Build negative constraint clauses for accessories + general guardrails
-  const negativeClauses: string[] = [];
-  
-  // ALWAYS require bare ears unless headphones are explicitly selected
-  if (!validAccessories.includes('headphones')) {
-    negativeClauses.push('The ears must be completely empty and bare. No items in or around the ears.');
-  }
-  
+  // Build constraint prompt for accessories + general guardrails
+  const constraints: string[] = [];
   if (validAccessories.length === 0) {
-    negativeClauses.push('CRITICAL: Completely accessory-free character. No glasses, no hats, no items of any kind.');
+    constraints.push('No glasses. No sunglasses. No hats. No accessories.');
   } else {
     if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
-      negativeClauses.push('IMPORTANT: Absolutely no glasses or sunglasses of any kind.');
+      constraints.push('No glasses or sunglasses other than what is described.');
     }
     if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
-      negativeClauses.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
+      constraints.push('No hats other than what is described.');
     }
-    if (validAccessories.includes('headphones')) {
-      negativeClauses.push('CRITICAL: Headphones are OVER-EAR headphones worn around the neck. The ears themselves must be completely empty and bare.');
+    if (!validAccessories.includes('headphones')) {
+      constraints.push('No headphones other than what is described.');
     }
     if (validAccessories.includes('sunglasses')) {
-      negativeClauses.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
+      constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
     }
     if (validAccessories.includes('cap')) {
-      negativeClauses.push('CRITICAL: The baseball cap must face FORWARD with the brim/visor in front. Show only the smooth front panel of the cap. Never show the back of the cap, rear strap, or snapback closure. Hair must be completely tucked under the cap with no hair visible.');
-    }
-    if (validAccessories.includes('beanie')) {
-      negativeClauses.push('IMPORTANT: Hair must be completely tucked under the beanie. No hair should stick out through or above the beanie.');
+      constraints.push('Cap must face forward with visor in front; do not show any rear opening, strap, or backwards orientation.');
     }
   }
-  negativeClauses.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
+  constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
 
-  const constraintLines = negativeClauses.map(clause => `- ${clause}`);
-  const constraintPrompt = constraintLines.length > 0 ? `Constraints:\n${constraintLines.join('\n')}` : '';
+  const accessorialPrompt = accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : '';
+  const constraintPrompt = constraints.length > 0 ? `Constraints: ${constraints.join(' ')}` : '';
 
-  // Build final accessories prompt (non-hat accessories only, since hats are handled separately)
-  let finalAccessoryPrompt = '';
-  if (nonHatAccessories.length > 0) {
-    const nonHatPrompt = nonHatAccessories
-      .map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a)
-      .join(' and ');
-    finalAccessoryPrompt = `Accessories ONLY: ${nonHatPrompt}. These are the ONLY accessories - nothing else.`;
-  } else if (validAccessories.length === 0) {
-    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free.';
-  }
-  // If only hats are selected, leave finalAccessoryPrompt as empty string (no contradiction)
-
-  const subjectLines: string[] = [
-    'A cute 3D vinyl toy character.',
-    'View: Direct front view. Facing camera.',
-    `Gender: ${config.gender || 'female'}.`,
-    `Age: ${agePrompt}.`,
-    `Skin: ${skinTonePrompt}.`,
-    `Eyes: Large circular ${eyeColorPrompt} eyes.`,
-    `Ears: Clean visible ears. Ears are completely empty and bare with NOTHING in, on, or around them.`,
-    hatAccessories.length > 0
-      ? `Hat: ${hatPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
-      : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`,
-    `Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.`,
-  ];
-
-  if (finalAccessoryPrompt) {
-    subjectLines.push(finalAccessoryPrompt);
-  }
-
-  subjectLines.push(`Expression: ${expressionPrompt}.`);
-
-  const subjectPrompt = constraintPrompt
-    ? `${subjectLines.join('\n')}\n${constraintPrompt}`
-    : subjectLines.join('\n');
+  const subjectPrompt = `
+    A cute 3D vinyl toy character.
+    View: Direct front view. Facing camera.
+    Gender: ${config.gender || 'female'}.
+    Age: ${agePrompt}.
+    Skin: ${skinTonePrompt}.
+    Eyes: Large circular ${eyeColorPrompt} eyes.
+    Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
+    Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
+    Expression: ${expressionPrompt}.
+    ${accessorialPrompt}
+    ${constraintPrompt}
+  `;
   
-  // Add a "Negative prompt" section to the end, which Imagen/Gemini models often understand
-  const negativePromptText = "\n\nNegative prompt: earbuds, airpods, wireless earphones, in-ear headphones, bluetooth headset, hearing aid, electronic device in ear, text, watermark, logo, signature, distorted, ugly, bad anatomy, low quality, blurry, pixelated";
+  logger.info('Generated prompt:', subjectPrompt);
   
-  const fullPrompt = `${STYLE_PROMPT.trim()}\n${subjectPrompt}${negativePromptText}`;
-  logger.info('Generated prompt:', fullPrompt);
-  
-  return fullPrompt;
+  return `${STYLE_PROMPT} ${subjectPrompt}`;
 }
 
 // ============================================================================
@@ -534,15 +439,13 @@ function buildCharacterPrompt(config: CharacterConfig): string {
 async function generateBaseImage(ai: GoogleGenAI, prompt: string): Promise<string> {
   logger.info('Generating base image...');
   
-  // Note: negativePrompt parameter is not supported by the Gemini API runtime yet, 
-  // so we append negative constraints to the prompt text instead.
   const imageResponse = await ai.models.generateImages({
     model: CONFIG.MODEL_IMAGE_GEN,
     prompt: prompt,
     config: { 
       numberOfImages: 1, 
       outputMimeType: CONFIG.IMAGE_FORMAT, 
-      aspectRatio: CONFIG.ASPECT_RATIO
+      aspectRatio: CONFIG.ASPECT_RATIO 
     },
   });
 
@@ -776,24 +679,14 @@ async function generateCharacter(req: Request): Promise<Response> {
   }
 }
 
-if (import.meta.main) {
-  Deno.serve(async (req: Request) => {
-    // Handle CORS preflight using shared utility
-    const corsResponse = handleCors(req);
-    if (corsResponse) return corsResponse;
+Deno.serve(async (req: Request) => {
+  // Handle CORS preflight using shared utility
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
-    try {
-      return await generateCharacter(req);
-    } catch (error: any) {
-      return handleError(error);
-    }
-  });
-}
-
-export {
-  deterministicChoice,
-  buildCharacterPrompt,
-  normalizeAccessories,
-  resolveAccessoryConflicts,
-  stableConfigSignature,
-};
+  try {
+    return await generateCharacter(req);
+  } catch (error: any) {
+    return handleError(error);
+  }
+});
