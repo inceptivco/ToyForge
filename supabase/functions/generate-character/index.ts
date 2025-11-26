@@ -382,8 +382,12 @@ function buildCharacterPrompt(config: CharacterConfig): string {
   
   logger.info('Normalized accessories:', validAccessories);
   
-  const accessoryPrompt = validAccessories.length > 0
-    ? validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
+  // Separate hat accessories from non-hat accessories
+  const hatAccessories = validAccessories.filter(a => a === 'cap' || a === 'beanie');
+  const nonHatAccessories = validAccessories.filter(a => a !== 'cap' && a !== 'beanie');
+  
+  const hatPrompt = hatAccessories.length > 0
+    ? hatAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
     : '';
 
   const expressionPrompt = Math.random() > 0.5 
@@ -416,8 +420,17 @@ function buildCharacterPrompt(config: CharacterConfig): string {
   }
   constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
 
-  const accessorialPrompt = accessoryPrompt ? `Accessories: ${accessoryPrompt}.` : '';
   const constraintPrompt = constraints.length > 0 ? `Constraints: ${constraints.join(' ')}` : '';
+
+  // Build final accessories prompt (non-hat accessories only, since hats are handled separately)
+  let finalAccessoryPrompt = '';
+  if (nonHatAccessories.length > 0) {
+    const nonHatPrompt = nonHatAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ');
+    finalAccessoryPrompt = `Accessories ONLY: ${nonHatPrompt}. These are the ONLY accessories - nothing else.`;
+  } else if (validAccessories.length === 0) {
+    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free.';
+  }
+  // If only hats are selected, leave finalAccessoryPrompt as empty string (no contradiction)
 
   const subjectPrompt = `
     A cute 3D vinyl toy character.
@@ -427,17 +440,12 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     Skin: ${skinTonePrompt}.
     Eyes: Large circular ${eyeColorPrompt} eyes.
     Ears: Clean visible ears with NO devices, NO earbuds, NO airpods, NO earrings, NOTHING in or on the ears.
-    ${validAccessories.includes('cap') || validAccessories.includes('beanie') 
-      ? `Hat: ${accessoryPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
+    ${hatAccessories.length > 0
+      ? `Hat: ${hatPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
       : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`
     }
     Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
-    ${validAccessories.length > 0 && !validAccessories.includes('cap') && !validAccessories.includes('beanie') 
-      ? `Accessories ONLY: ${accessoryPrompt}. These are the ONLY accessories - nothing else.`
-      : validAccessories.includes('glasses') || validAccessories.includes('sunglasses')
-        ? `Accessories ONLY: ${validAccessories.filter(a => a === 'glasses' || a === 'sunglasses').map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ')}. These are the ONLY accessories - nothing else.`
-        : 'Accessories: None. Completely accessory-free.'
-    }
+    ${finalAccessoryPrompt}
     Expression: ${expressionPrompt}.
     ${constraintPrompt}
   `;
