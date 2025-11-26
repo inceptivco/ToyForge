@@ -78,15 +78,6 @@ Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
 
-🚫 FORBIDDEN ITEMS (DO NOT ADD):
-- NO earbuds
-- NO airpods  
-- NO wireless earphones
-- NO in-ear audio devices
-- NO ear accessories of any kind (unless explicitly specified in the character description)
-- NO accessories, devices, or items that are not explicitly described
-- NO text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
-
 CRITICAL: The character's ears must be completely empty and bare. Do NOT add anything to or around the ears unless headphones are explicitly specified.
 `;
 
@@ -459,13 +450,13 @@ function buildCharacterPrompt(config: CharacterConfig): string {
   // Build negative constraint clauses for accessories + general guardrails
   const negativeClauses: string[] = [];
   
-  // ALWAYS forbid earbuds/airpods unless headphones are explicitly selected (and headphones are over-ear, not earbuds)
+  // ALWAYS require bare ears unless headphones are explicitly selected
   if (!validAccessories.includes('headphones')) {
-    negativeClauses.push('🚫 FORBIDDEN: NO earbuds. NO airpods. NO wireless earphones. NO in-ear devices. NO ear accessories. The ears must be completely empty and bare.');
+    negativeClauses.push('The ears must be completely empty and bare. No items in or around the ears.');
   }
   
   if (validAccessories.length === 0) {
-    negativeClauses.push('CRITICAL: No glasses. No sunglasses. No hats. No headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories of ANY kind. The character has ABSOLUTELY NOTHING in, on, or around the ears. Completely accessory-free character.');
+    negativeClauses.push('CRITICAL: Completely accessory-free character. No glasses, no hats, no items of any kind.');
   } else {
     if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
       negativeClauses.push('IMPORTANT: Absolutely no glasses or sunglasses of any kind.');
@@ -474,7 +465,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
       negativeClauses.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
     }
     if (validAccessories.includes('headphones')) {
-      negativeClauses.push('CRITICAL: Headphones are OVER-EAR headphones worn around the neck. NO earbuds. NO airpods. NO in-ear devices. The ears themselves must be completely empty and bare.');
+      negativeClauses.push('CRITICAL: Headphones are OVER-EAR headphones worn around the neck. The ears themselves must be completely empty and bare.');
     }
     if (validAccessories.includes('sunglasses')) {
       negativeClauses.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
@@ -499,7 +490,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
       .join(' and ');
     finalAccessoryPrompt = `Accessories ONLY: ${nonHatPrompt}. These are the ONLY accessories - nothing else.`;
   } else if (validAccessories.length === 0) {
-    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free. 🚫 NO earbuds, NO airpods, NO ear accessories of any kind.';
+    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free.';
   }
   // If only hats are selected, leave finalAccessoryPrompt as empty string (no contradiction)
 
@@ -510,7 +501,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     `Age: ${agePrompt}.`,
     `Skin: ${skinTonePrompt}.`,
     `Eyes: Large circular ${eyeColorPrompt} eyes.`,
-    `Ears: Clean visible ears. 🚫 FORBIDDEN: NO earbuds, NO airpods, NO wireless earphones, NO in-ear devices, NO ear accessories. Ears are completely empty and bare with NOTHING in, on, or around them.`,
+    `Ears: Clean visible ears. Ears are completely empty and bare with NOTHING in, on, or around them.`,
     hatAccessories.length > 0
       ? `Hat: ${hatPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
       : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`,
@@ -527,7 +518,10 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     ? `${subjectLines.join('\n')}\n${constraintPrompt}`
     : subjectLines.join('\n');
   
-  const fullPrompt = `${STYLE_PROMPT.trim()}\n${subjectPrompt}`;
+  // Add a "Negative prompt" section to the end, which Imagen/Gemini models often understand
+  const negativePromptText = "\n\nNegative prompt: earbuds, airpods, wireless earphones, in-ear headphones, bluetooth headset, hearing aid, electronic device in ear, text, watermark, logo, signature, distorted, ugly, bad anatomy, low quality, blurry, pixelated";
+  
+  const fullPrompt = `${STYLE_PROMPT.trim()}\n${subjectPrompt}${negativePromptText}`;
   logger.info('Generated prompt:', fullPrompt);
   
   return fullPrompt;
@@ -540,13 +534,15 @@ function buildCharacterPrompt(config: CharacterConfig): string {
 async function generateBaseImage(ai: GoogleGenAI, prompt: string): Promise<string> {
   logger.info('Generating base image...');
   
+  // Note: negativePrompt parameter is not supported by the Gemini API runtime yet, 
+  // so we append negative constraints to the prompt text instead.
   const imageResponse = await ai.models.generateImages({
     model: CONFIG.MODEL_IMAGE_GEN,
     prompt: prompt,
     config: { 
       numberOfImages: 1, 
       outputMimeType: CONFIG.IMAGE_FORMAT, 
-      aspectRatio: CONFIG.ASPECT_RATIO 
+      aspectRatio: CONFIG.ASPECT_RATIO
     },
   });
 
