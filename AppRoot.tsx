@@ -172,6 +172,12 @@ function MainApp() {
     try {
       const configWithNoCache = { ...config, cache: false };
       
+      // Debug: Log the config being sent
+      console.log('[MainApp] Generating with config:', {
+        ...configWithNoCache,
+        accessories: configWithNoCache.accessories
+      });
+      
       // Track generation start
       analytics.generateCharacter({
         gender: config.gender,

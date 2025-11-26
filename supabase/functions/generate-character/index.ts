@@ -155,11 +155,11 @@ const PROMPT_MAPS = {
   },
   ACCESSORIES: {
     'none': '',
-    'glasses': 'wearing thick black rimmed glasses',
+    'glasses': 'wearing black-framed eyeglasses on the face',
     'sunglasses': 'wearing exactly ONE single pair of sunglasses on the face covering the eyes. NOT on top of head. NOT multiple pairs. ONLY one pair on face.',
-    'headphones': 'wearing large headphones around the neck',
-    'cap': 'wearing a front-facing baseball cap with the visor pointing forward, solid front panel, and zero visibility of any rear strap, opening, or adjustment hardware',
-    'beanie': 'wearing a knit beanie hat',
+    'headphones': 'wearing large over-ear headphones positioned around the neck below the chin',
+    'cap': 'wearing a baseball cap positioned on the head with the visor/brim facing forward toward the camera and extending out over the forehead. The cap sits on the head covering all hair completely.',
+    'beanie': 'wearing a knit beanie hat positioned on the head covering all hair completely',
   },
   AGE_GROUPS: {
     'kid': 'Childlike proportions with larger head-to-body ratio (1:3), very round soft features, big innocent eyes, button nose, gentle expression',
@@ -379,6 +379,8 @@ function buildCharacterPrompt(config: CharacterConfig): string {
 
   const validAccessories = normalizeAccessories(config.accessories);
   
+  logger.info('Normalized accessories:', validAccessories);
+  
   const accessoryPrompt = validAccessories.length > 0
     ? validAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
     : '';
@@ -390,22 +392,25 @@ function buildCharacterPrompt(config: CharacterConfig): string {
   // Build constraint prompt for accessories + general guardrails
   const constraints: string[] = [];
   if (validAccessories.length === 0) {
-    constraints.push('No glasses. No sunglasses. No hats. No accessories.');
+    constraints.push('IMPORTANT: No glasses. No sunglasses. No hats. No headphones. No accessories of any kind. Completely accessory-free character.');
   } else {
     if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
-      constraints.push('No glasses or sunglasses other than what is described.');
+      constraints.push('IMPORTANT: Absolutely no glasses or sunglasses of any kind.');
     }
     if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
-      constraints.push('No hats other than what is described.');
+      constraints.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
     }
     if (!validAccessories.includes('headphones')) {
-      constraints.push('No headphones other than what is described.');
+      constraints.push('CRITICAL: Absolutely no headphones, earbuds, or audio devices of any kind. Character must not have any headphones.');
     }
     if (validAccessories.includes('sunglasses')) {
       constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
     }
     if (validAccessories.includes('cap')) {
-      constraints.push('Cap must face forward with visor in front; do not show any rear opening, strap, or backwards orientation.');
+      constraints.push('CRITICAL: The baseball cap must face FORWARD with the brim/visor in front. Show only the smooth front panel of the cap. Never show the back of the cap, rear strap, or snapback closure. Hair must be completely tucked under the cap with no hair visible.');
+    }
+    if (validAccessories.includes('beanie')) {
+      constraints.push('IMPORTANT: Hair must be completely tucked under the beanie. No hair should stick out through or above the beanie.');
     }
   }
   constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
@@ -420,10 +425,18 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     Age: ${agePrompt}.
     Skin: ${skinTonePrompt}.
     Eyes: Large circular ${eyeColorPrompt} eyes.
-    Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.
+    ${validAccessories.includes('cap') || validAccessories.includes('beanie') 
+      ? `Hat: ${accessoryPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
+      : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`
+    }
     Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
+    ${validAccessories.length > 0 && !validAccessories.includes('cap') && !validAccessories.includes('beanie') 
+      ? `Accessories: ${accessoryPrompt}.`
+      : validAccessories.includes('glasses') || validAccessories.includes('sunglasses')
+        ? `Face accessories: ${validAccessories.filter(a => a === 'glasses' || a === 'sunglasses').map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ')}.`
+        : ''
+    }
     Expression: ${expressionPrompt}.
-    ${accessorialPrompt}
     ${constraintPrompt}
   `;
   

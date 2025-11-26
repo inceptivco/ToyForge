@@ -200,11 +200,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 {(() => {
                   // Define conflict groups - accessories that can't be selected together
+                  // MUST match the conflict resolution in AppRoot.tsx
                   const conflictGroups: { [key: string]: string[] } = {
                     'glasses': ['sunglasses'],
                     'sunglasses': ['glasses'],
-                    'cap': ['beanie'],
-                    'beanie': ['cap'],
+                    'cap': ['beanie', 'headphones'],
+                    'beanie': ['cap', 'headphones'],
+                    'headphones': ['cap', 'beanie'],
                   };
                   
                   return ACCESSORIES.map((opt) => {
