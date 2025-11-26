@@ -97,7 +97,11 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({ isOpen
             // Track purchase initiation with correct amount and credits
             analytics.purchaseCredits(actualAmount, actualCredits);
             
-            window.location.href = data.url;
+            // Add a small delay before navigation to ensure analytics event is sent
+            // Even with beacon transport, we need to give the GA script time to process
+            setTimeout(() => {
+                window.location.href = data.url;
+            }, 150);
         } catch (error: any) {
             console.error('[CreditPurchaseModal] Purchase failed:', error);
             const errorMessage = error?.message || error?.error?.message || 'Unknown error occurred';
