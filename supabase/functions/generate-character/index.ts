@@ -77,8 +77,17 @@ Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny
 Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
-CRITICAL: Do NOT add any accessories, devices, or items that are not explicitly described. ABSOLUTELY NO earbuds. ABSOLUTELY NO airpods. ABSOLUTELY NO wireless earphones. ABSOLUTELY NO audio devices. NO ear accessories of any kind unless explicitly specified.
-Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
+
+🚫 FORBIDDEN ITEMS (DO NOT ADD):
+- NO earbuds
+- NO airpods  
+- NO wireless earphones
+- NO in-ear audio devices
+- NO ear accessories of any kind (unless explicitly specified in the character description)
+- NO accessories, devices, or items that are not explicitly described
+- NO text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
+
+CRITICAL: The character's ears must be completely empty and bare. Do NOT add anything to or around the ears unless headphones are explicitly specified.
 `;
 
 const PROMPT_MAPS = {
@@ -158,7 +167,7 @@ const PROMPT_MAPS = {
     'none': '',
     'glasses': 'wearing black-framed eyeglasses on the face',
     'sunglasses': 'wearing exactly ONE single pair of sunglasses on the face covering the eyes. NOT on top of head. NOT multiple pairs. ONLY one pair on face.',
-    'headphones': 'wearing large over-ear headphones positioned around the neck below the chin',
+    'headphones': 'wearing large over-ear headphones positioned around the neck below the chin. These are OVER-EAR headphones, NOT earbuds, NOT airpods, NOT in-ear devices.',
     'cap': 'wearing a baseball cap positioned on the head with the visor/brim facing forward toward the camera and extending out over the forehead. The cap sits on the head covering all hair completely.',
     'beanie': 'wearing a knit beanie hat positioned on the head covering all hair completely',
   },
@@ -449,6 +458,12 @@ function buildCharacterPrompt(config: CharacterConfig): string {
 
   // Build negative constraint clauses for accessories + general guardrails
   const negativeClauses: string[] = [];
+  
+  // ALWAYS forbid earbuds/airpods unless headphones are explicitly selected (and headphones are over-ear, not earbuds)
+  if (!validAccessories.includes('headphones')) {
+    negativeClauses.push('🚫 FORBIDDEN: NO earbuds. NO airpods. NO wireless earphones. NO in-ear devices. NO ear accessories. The ears must be completely empty and bare.');
+  }
+  
   if (validAccessories.length === 0) {
     negativeClauses.push('CRITICAL: No glasses. No sunglasses. No hats. No headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories of ANY kind. The character has ABSOLUTELY NOTHING in, on, or around the ears. Completely accessory-free character.');
   } else {
@@ -458,8 +473,8 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
       negativeClauses.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
     }
-    if (!validAccessories.includes('headphones')) {
-      negativeClauses.push('CRITICAL: NO headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories. The character has NOTHING in or around the ears.');
+    if (validAccessories.includes('headphones')) {
+      negativeClauses.push('CRITICAL: Headphones are OVER-EAR headphones worn around the neck. NO earbuds. NO airpods. NO in-ear devices. The ears themselves must be completely empty and bare.');
     }
     if (validAccessories.includes('sunglasses')) {
       negativeClauses.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
@@ -484,7 +499,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
       .join(' and ');
     finalAccessoryPrompt = `Accessories ONLY: ${nonHatPrompt}. These are the ONLY accessories - nothing else.`;
   } else if (validAccessories.length === 0) {
-    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free.';
+    finalAccessoryPrompt = 'Accessories: None. Completely accessory-free. 🚫 NO earbuds, NO airpods, NO ear accessories of any kind.';
   }
   // If only hats are selected, leave finalAccessoryPrompt as empty string (no contradiction)
 
@@ -495,7 +510,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     `Age: ${agePrompt}.`,
     `Skin: ${skinTonePrompt}.`,
     `Eyes: Large circular ${eyeColorPrompt} eyes.`,
-    'Ears: Clean visible ears with ABSOLUTELY NO devices, NO earbuds, NO airpods, NO wireless earphones, NO earrings, NO audio devices, NOTHING in, on, or around the ears. Ears must be completely bare and empty.',
+    `Ears: Clean visible ears. 🚫 FORBIDDEN: NO earbuds, NO airpods, NO wireless earphones, NO in-ear devices, NO ear accessories. Ears are completely empty and bare with NOTHING in, on, or around them.`,
     hatAccessories.length > 0
       ? `Hat: ${hatPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
       : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`,
