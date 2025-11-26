@@ -39,8 +39,22 @@ function MainApp() {
       .eq('id', userId)
       .single<{ credits_balance: number }>();
 
-    if (!error && data) {
-      setCredits(data.credits_balance);
+    if (error) {
+      // PGRST116 means no rows found (406 error)
+      // This can happen if profile wasn't created yet - treat as 0 credits
+      if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+        console.warn('[AppRoot] Profile not found, setting credits to 0');
+        setCredits(0);
+        return;
+      }
+      console.error('[AppRoot] Error fetching profile:', error);
+      return;
+    }
+
+    if (data) {
+      setCredits(data.credits_balance ?? 0);
+    } else {
+      setCredits(0);
     }
   };
 

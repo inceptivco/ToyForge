@@ -77,7 +77,7 @@ Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny
 Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
-IMPORTANT: Do NOT add any accessories, devices, or items that are not explicitly described. No earbuds. No airpods. No wireless earphones. No audio devices.
+CRITICAL: Do NOT add any accessories, devices, or items that are not explicitly described. ABSOLUTELY NO earbuds. ABSOLUTELY NO airpods. ABSOLUTELY NO wireless earphones. ABSOLUTELY NO audio devices. NO ear accessories of any kind unless explicitly specified.
 Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
 `;
 
@@ -171,11 +171,12 @@ const PROMPT_MAPS = {
   }
 } as const;
 
-const ACCESSORY_CONFLICTS = new Map<string, string>([
-  ['glasses', 'sunglasses'],
-  ['sunglasses', 'glasses'],
-  ['cap', 'beanie'],
-  ['beanie', 'cap'],
+const ACCESSORY_CONFLICTS = new Map<string, string[]>([
+  ['glasses', ['sunglasses']],
+  ['sunglasses', ['glasses']],
+  ['cap', ['beanie', 'headphones']],
+  ['beanie', ['cap', 'headphones']],
+  ['headphones', ['cap', 'beanie']],
 ]);
 
 // ============================================================================
@@ -263,14 +264,29 @@ async function checkCredits(
   userId: string,
   creditType: CreditType
 ): Promise<void> {
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('credits_balance, api_credits_balance')
     .eq('id', userId)
     .single();
 
+  if (profileError) {
+    logger.error('Failed to fetch profile:', profileError);
+    // PGRST116 means no rows found
+    if (profileError.code === 'PGRST116' || profileError.message?.includes('No rows')) {
+      const error: any = new Error('User profile not found. Please contact support.');
+      error.statusCode = HTTP_STATUS.NOT_FOUND;
+      throw error;
+    }
+    const error: any = new Error('Failed to check credits: ' + profileError.message);
+    error.statusCode = HTTP_STATUS.INTERNAL_ERROR;
+    throw error;
+  }
+
   if (!profile) {
-    throw new Error('User profile not found');
+    const error: any = new Error('User profile not found. Please contact support.');
+    error.statusCode = HTTP_STATUS.NOT_FOUND;
+    throw error;
   }
 
   const creditBalance = creditType === 'api' 
@@ -349,8 +365,8 @@ function resolveAccessoryConflicts(accessories: string[]): string[] {
   const seen = new Set<string>();
   
   return accessories.filter(accessory => {
-    const conflict = ACCESSORY_CONFLICTS.get(accessory);
-    if (conflict && seen.has(conflict)) {
+    const conflicts = ACCESSORY_CONFLICTS.get(accessory) || [];
+    if (conflicts.some(conflict => seen.has(conflict))) {
       return false;
     }
     seen.add(accessory);
@@ -365,6 +381,38 @@ function normalizeAccessories(accessories: string | string[] | undefined): strin
   
   const validAccessories = accessoriesList.filter(a => a && a !== 'none');
   return resolveAccessoryConflicts(validAccessories);
+}
+
+function stableConfigSignature(config: CharacterConfig): string {
+  const entries = Object.entries(config)
+    .filter(([key]) => key !== 'cache')
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  return entries
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `${key}=[${value.join(',')}]`;
+      }
+      if (value === undefined || value === null) {
+        return `${key}=null`;
+      }
+      return `${key}=${String(value)}`;
+    })
+    .join('|');
+}
+
+function deterministicChoice<T>(items: T[], signature: string): T {
+  if (items.length === 0) {
+    throw new Error('deterministicChoice requires a non-empty items array');
+  }
+
+  let hash = 0;
+  for (let i = 0; i < signature.length; i++) {
+    hash = (hash * 31 + signature.charCodeAt(i)) >>> 0;
+  }
+
+  const index = hash % items.length;
+  return items[index];
 }
 
 function buildCharacterPrompt(config: CharacterConfig): string {
@@ -390,69 +438,84 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     ? hatAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a).join(' and ')
     : '';
 
-  const expressionPrompt = Math.random() > 0.5 
-    ? 'a happy smiling expression' 
-    : 'a confident smirk';
+  const expressionPrompt = deterministicChoice(
+    [
+      'a happy smiling expression',
+      'a confident smirk',
+      'a calm relaxed expression',
+    ],
+    stableConfigSignature(config)
+  );
 
-  // Build constraint prompt for accessories + general guardrails
-  const constraints: string[] = [];
+  // Build negative constraint clauses for accessories + general guardrails
+  const negativeClauses: string[] = [];
   if (validAccessories.length === 0) {
-    constraints.push('IMPORTANT: No glasses. No sunglasses. No hats. No headphones. No accessories of any kind. Completely accessory-free character.');
+    negativeClauses.push('CRITICAL: No glasses. No sunglasses. No hats. No headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories of ANY kind. The character has ABSOLUTELY NOTHING in, on, or around the ears. Completely accessory-free character.');
   } else {
     if (!validAccessories.includes('glasses') && !validAccessories.includes('sunglasses')) {
-      constraints.push('IMPORTANT: Absolutely no glasses or sunglasses of any kind.');
+      negativeClauses.push('IMPORTANT: Absolutely no glasses or sunglasses of any kind.');
     }
     if (!validAccessories.includes('cap') && !validAccessories.includes('beanie')) {
-      constraints.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
+      negativeClauses.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
     }
     if (!validAccessories.includes('headphones')) {
-      constraints.push('CRITICAL: NO headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories. The character has NOTHING in or around the ears.');
+      negativeClauses.push('CRITICAL: NO headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories. The character has NOTHING in or around the ears.');
     }
     if (validAccessories.includes('sunglasses')) {
-      constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
+      negativeClauses.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
     }
     if (validAccessories.includes('cap')) {
-      constraints.push('CRITICAL: The baseball cap must face FORWARD with the brim/visor in front. Show only the smooth front panel of the cap. Never show the back of the cap, rear strap, or snapback closure. Hair must be completely tucked under the cap with no hair visible.');
+      negativeClauses.push('CRITICAL: The baseball cap must face FORWARD with the brim/visor in front. Show only the smooth front panel of the cap. Never show the back of the cap, rear strap, or snapback closure. Hair must be completely tucked under the cap with no hair visible.');
     }
     if (validAccessories.includes('beanie')) {
-      constraints.push('IMPORTANT: Hair must be completely tucked under the beanie. No hair should stick out through or above the beanie.');
+      negativeClauses.push('IMPORTANT: Hair must be completely tucked under the beanie. No hair should stick out through or above the beanie.');
     }
   }
-  constraints.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
+  negativeClauses.push('Absolutely no text, lettering, numbers, logos, stickers, watermarks, or hex codes anywhere in the image.');
 
-  const constraintPrompt = constraints.length > 0 ? `Constraints: ${constraints.join(' ')}` : '';
+  const constraintLines = negativeClauses.map(clause => `- ${clause}`);
+  const constraintPrompt = constraintLines.length > 0 ? `Constraints:\n${constraintLines.join('\n')}` : '';
 
   // Build final accessories prompt (non-hat accessories only, since hats are handled separately)
   let finalAccessoryPrompt = '';
   if (nonHatAccessories.length > 0) {
-    const nonHatPrompt = nonHatAccessories.map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ');
+    const nonHatPrompt = nonHatAccessories
+      .map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES] || a)
+      .join(' and ');
     finalAccessoryPrompt = `Accessories ONLY: ${nonHatPrompt}. These are the ONLY accessories - nothing else.`;
   } else if (validAccessories.length === 0) {
     finalAccessoryPrompt = 'Accessories: None. Completely accessory-free.';
   }
   // If only hats are selected, leave finalAccessoryPrompt as empty string (no contradiction)
 
-  const subjectPrompt = `
-    A cute 3D vinyl toy character.
-    View: Direct front view. Facing camera.
-    Gender: ${config.gender || 'female'}.
-    Age: ${agePrompt}.
-    Skin: ${skinTonePrompt}.
-    Eyes: Large circular ${eyeColorPrompt} eyes.
-    Ears: Clean visible ears with NO devices, NO earbuds, NO airpods, NO earrings, NOTHING in or on the ears.
-    ${hatAccessories.length > 0
+  const subjectLines: string[] = [
+    'A cute 3D vinyl toy character.',
+    'View: Direct front view. Facing camera.',
+    `Gender: ${config.gender || 'female'}.`,
+    `Age: ${agePrompt}.`,
+    `Skin: ${skinTonePrompt}.`,
+    `Eyes: Large circular ${eyeColorPrompt} eyes.`,
+    'Ears: Clean visible ears with ABSOLUTELY NO devices, NO earbuds, NO airpods, NO wireless earphones, NO earrings, NO audio devices, NOTHING in, on, or around the ears. Ears must be completely bare and empty.',
+    hatAccessories.length > 0
       ? `Hat: ${hatPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
-      : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`
-    }
-    Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
-    ${finalAccessoryPrompt}
-    Expression: ${expressionPrompt}.
-    ${constraintPrompt}
-  `;
+      : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`,
+    `Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.`,
+  ];
+
+  if (finalAccessoryPrompt) {
+    subjectLines.push(finalAccessoryPrompt);
+  }
+
+  subjectLines.push(`Expression: ${expressionPrompt}.`);
+
+  const subjectPrompt = constraintPrompt
+    ? `${subjectLines.join('\n')}\n${constraintPrompt}`
+    : subjectLines.join('\n');
   
-  logger.info('Generated prompt:', subjectPrompt);
+  const fullPrompt = `${STYLE_PROMPT.trim()}\n${subjectPrompt}`;
+  logger.info('Generated prompt:', fullPrompt);
   
-  return `${STYLE_PROMPT} ${subjectPrompt}`;
+  return fullPrompt;
 }
 
 // ============================================================================
@@ -702,14 +765,24 @@ async function generateCharacter(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(async (req: Request) => {
-  // Handle CORS preflight using shared utility
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+if (import.meta.main) {
+  Deno.serve(async (req: Request) => {
+    // Handle CORS preflight using shared utility
+    const corsResponse = handleCors(req);
+    if (corsResponse) return corsResponse;
 
-  try {
-    return await generateCharacter(req);
-  } catch (error: any) {
-    return handleError(error);
-  }
-});
+    try {
+      return await generateCharacter(req);
+    } catch (error: any) {
+      return handleError(error);
+    }
+  });
+}
+
+export {
+  deterministicChoice,
+  buildCharacterPrompt,
+  normalizeAccessories,
+  resolveAccessoryConflicts,
+  stableConfigSignature,
+};
