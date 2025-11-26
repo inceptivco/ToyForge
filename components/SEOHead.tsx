@@ -123,7 +123,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
     };
 
     structuredData.textContent = JSON.stringify(jsonLd);
-  }, [title, description, keywords, image, currentUrl, type, fullImageUrl]);
+  }, [title, description, keywords, image, currentUrl, type, fullImageUrl, location.pathname, location.search]);
 
   return null;
 };
