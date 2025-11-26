@@ -77,6 +77,7 @@ Material: Soft matte vinyl with a smooth clay-like finish. NOT glossy, NOT shiny
 Lighting: Soft studio lighting, warm and diffuse.
 Background: Solid bright white seamless studio backdrop with no gradients, stickers, logos, or text overlays.
 Aesthetic: Clean, minimalist, rounded shapes, premium designer toy style.
+IMPORTANT: Do NOT add any accessories, devices, or items that are not explicitly described. No earbuds. No airpods. No wireless earphones. No audio devices.
 Absolutely do NOT place any text, numbers, hex codes, signatures, or UI elements anywhere in the frame.
 `;
 
@@ -401,7 +402,7 @@ function buildCharacterPrompt(config: CharacterConfig): string {
       constraints.push('IMPORTANT: Absolutely no hats, caps, or beanies of any kind.');
     }
     if (!validAccessories.includes('headphones')) {
-      constraints.push('CRITICAL: Absolutely no headphones, earbuds, or audio devices of any kind. Character must not have any headphones.');
+      constraints.push('CRITICAL: NO headphones. NO earbuds. NO airpods. NO wireless earphones. NO audio devices. NO ear accessories. The character has NOTHING in or around the ears.');
     }
     if (validAccessories.includes('sunglasses')) {
       constraints.push('Sunglasses must stay on the face only, never on the head, and only a single pair.');
@@ -425,16 +426,17 @@ function buildCharacterPrompt(config: CharacterConfig): string {
     Age: ${agePrompt}.
     Skin: ${skinTonePrompt}.
     Eyes: Large circular ${eyeColorPrompt} eyes.
+    Ears: Clean visible ears with NO devices, NO earbuds, NO airpods, NO earrings, NOTHING in or on the ears.
     ${validAccessories.includes('cap') || validAccessories.includes('beanie') 
       ? `Hat: ${accessoryPrompt}. Hair underneath hat: ${hairColorPrompt} colored hair that is completely hidden and tucked under the hat.`
       : `Hair: ${hairStylePrompt}, colored ${hairColorPrompt}.`
     }
     Clothing: Wearing ${clothingColorPrompt} ${clothingItemPrompt}.
     ${validAccessories.length > 0 && !validAccessories.includes('cap') && !validAccessories.includes('beanie') 
-      ? `Accessories: ${accessoryPrompt}.`
+      ? `Accessories ONLY: ${accessoryPrompt}. These are the ONLY accessories - nothing else.`
       : validAccessories.includes('glasses') || validAccessories.includes('sunglasses')
-        ? `Face accessories: ${validAccessories.filter(a => a === 'glasses' || a === 'sunglasses').map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ')}.`
-        : ''
+        ? `Accessories ONLY: ${validAccessories.filter(a => a === 'glasses' || a === 'sunglasses').map(a => PROMPT_MAPS.ACCESSORIES[a as keyof typeof PROMPT_MAPS.ACCESSORIES]).join(' and ')}. These are the ONLY accessories - nothing else.`
+        : 'Accessories: None. Completely accessory-free.'
     }
     Expression: ${expressionPrompt}.
     ${constraintPrompt}
