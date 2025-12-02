@@ -60,7 +60,18 @@ export function initializeGA(): void {
  * Track a page view
  */
 export function trackPageView(path: string, title?: string): void {
-  if (!GA_TRACKING_ID || !window.gtag) {
+  if (!GA_TRACKING_ID) {
+    return;
+  }
+
+  // If gtag isn't loaded yet, queue the page view
+  if (!window.gtag) {
+    // Queue it in dataLayer - it will be processed when gtag loads
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(['config', GA_TRACKING_ID, {
+      page_path: path,
+      page_title: title || document.title,
+    }]);
     return;
   }
 
@@ -86,7 +97,14 @@ export function trackEvent(
   },
   useBeacon: boolean = false
 ): void {
-  if (!GA_TRACKING_ID || !window.gtag) {
+  if (!GA_TRACKING_ID) {
+    return;
+  }
+
+  // If gtag isn't loaded yet, queue the event
+  if (!window.gtag) {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(['event', eventName, eventParams]);
     return;
   }
 
