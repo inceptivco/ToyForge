@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200, height=630">
+  <title>CharacterForge OG Image</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    .og-container {
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #991b1b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Animated gradient overlay */
+    .og-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: rotate 20s linear infinite;
+    }
+    
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Content wrapper */
+    .content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      padding: 60px 80px;
+    }
+    
+    /* Left side - Text */
+    .text-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 40px;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      transform: rotate(3deg);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .logo-text {
+      font-size: 32px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+    
+    h1 {
+      font-size: 64px;
+      font-weight: 900;
+      color: white;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, #fecdd3 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    p {
+      font-size: 24px;
+      color: rgba(255,255,255,0.95);
+      line-height: 1.5;
+      margin-bottom: 32px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .tags {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .tag {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    /* Right side - Characters */
+    .characters {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 20px;
+      padding: 20px;
+    }
+    
+    .character {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+    
+    .character:hover {
+      transform: scale(1.05);
+    }
+    
+    .character img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.2);
+    }
+    
+    /* Decorative elements */
+    .decoration {
+      position: absolute;
+      background: white;
+      opacity: 0.1;
+      border-radius: 50%;
+    }
+    
+    .decoration-1 {
+      width: 400px;
+      height: 400px;
+      top: -200px;
+      right: -200px;
+    }
+    
+    .decoration-2 {
+      width: 300px;
+      height: 300px;
+      bottom: -150px;
+      left: -150px;
+    }
+    
+    .sparkle {
+      position: absolute;
+      color: white;
+      font-size: 24px;
+      opacity: 0.6;
+      animation: sparkle 2s ease-in-out infinite;
+    }
+    
+    @keyframes sparkle {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.2); }
+    }
+    
+    .sparkle-1 { top: 100px; right: 300px; animation-delay: 0s; }
+    .sparkle-2 { top: 200px; right: 150px; animation-delay: 0.7s; }
+    .sparkle-3 { bottom: 150px; left: 200px; animation-delay: 1.4s; }
+  </style>
+</head>
+<body>
+  <div class="og-container">
+    <!-- Decorative elements -->
+    <div class="decoration decoration-1"></div>
+    <div class="decoration decoration-2"></div>
+    <div class="sparkle sparkle-1">✨</div>
+    <div class="sparkle sparkle-2">⚡</div>
+    <div class="sparkle sparkle-3">🎨</div>
+    
+    <div class="content">
+      <!-- Left: Text Content -->
+      <div class="text-section">
+        <div class="logo">
+          <div class="logo-icon">🤖</div>
+          <div class="logo-text">CharacterForge</div>
+        </div>
+        
+        <h1>
+          AI-Powered<br>
+          <span class="gradient-text">Character</span><br>
+          Generator
+        </h1>
+        
+        <p>
+          Create production-ready 3D avatars<br>
+          in seconds with AI
+        </p>
+        
+        <div class="tags">
+          <div class="tag">⚡ Instant</div>
+          <div class="tag">🎮 Game Ready</div>
+          <div class="tag">🔌 Easy API</div>
+        </div>
+      </div>
+      
+      <!-- Right: Character Grid -->
+      <div class="characters">
+        <div class="character">
+          <img src="src/assets/char1.png" alt="Character 1">
+        </div>
+        <div class="character">
+          <img src="src/assets/char2.png" alt="Character 2">
+        </div>
+        <div class="character">
+          <img src="src/assets/char3.png" alt="Character 3">
+        </div>
+        <div class="character">
+          <img src="src/assets/char4.png" alt="Character 4">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div style="text-align: center; color: white; padding: 40px; font-family: monospace;">
+    <p>📸 Screenshot this at 1200x630px and save as public/og-image.png</p>
+    <p style="margin-top: 10px; opacity: 0.7;">Tip: Use browser dev tools to set window size to exactly 1200x630</p>
+  </div>
+</body>
+</html>
+
