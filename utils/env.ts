@@ -87,7 +87,15 @@ export function getRequiredEnv(key: EnvKey): string {
  * Get an optional environment variable
  */
 export function getOptionalEnv(key: OptionalEnvKey): string | undefined {
-  return getEnvValue(key);
+  // Must access import.meta.env properties directly for Vite to replace them at build time
+  // Bracket notation doesn't work for Vite's static analysis
+  if (key === 'VITE_GA_TRACKING_ID') {
+    return import.meta.env.VITE_GA_TRACKING_ID;
+  }
+  if (key === 'GEMINI_API_KEY') {
+    return import.meta.env.GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
+  }
+  return undefined;
 }
 
 // ============================================================================
