@@ -379,12 +379,8 @@ function MainApp() {
                 onClick={() => setIsSignInOpen(true)}
                 className="mb-6 p-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl text-white shadow-lg shadow-purple-500/20 relative overflow-hidden group text-left transition-all hover:scale-[1.02] hover:shadow-purple-500/30"
               >
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Sparkles size={48} />
-                </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 font-bold text-sm mb-1 text-purple-100">
-                    <Sparkles size={16} className="text-yellow-300" />
                     <span>New User Gift</span>
                   </div>
                   <div className="font-bold text-xl mb-1">Get 3 Free Credits</div>
