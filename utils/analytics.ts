@@ -2,6 +2,8 @@
  * Google Analytics Integration
  * 
  * Provides type-safe tracking functions for page views and custom events
+ * 
+ * Note: Google Analytics is initialized in index.html using the standard gtag.js snippet
  */
 
 import { getOptionalEnv } from './env';
@@ -19,99 +21,27 @@ declare global {
 
 // Get GA tracking ID from environment
 const GA_TRACKING_ID = getOptionalEnv('VITE_GA_TRACKING_ID');
-let isGAScriptLoaded = false;
-const pendingCommands: Array<() => void> = [];
-let isScriptInjected = false;
-
-function runOrQueue(command: () => void): void {
-  // Check if Google's real gtag function is available (it has a different signature than our custom one)
-  const hasRealGtag = window.gtag && window.gtag.toString().includes('dataLayer');
-  if (isGAScriptLoaded && hasRealGtag) {
-    command();
-  } else {
-    pendingCommands.push(command);
-  }
-}
-
-function flushPendingCommands(): void {
-  if (!isGAScriptLoaded || !window.gtag) {
-    return;
-  }
-
-  while (pendingCommands.length) {
-    const command = pendingCommands.shift();
-    command?.();
-  }
-}
 
 /**
  * Initialize Google Analytics
- * Call this once when the app loads
+ * No-op - GA is initialized in index.html
  */
 export function initializeGA(): void {
-  if (!GA_TRACKING_ID) {
-    console.warn('Google Analytics tracking ID not found. Analytics will not be initialized.');
-    return;
-  }
-
-  if (typeof window === 'undefined' || isScriptInjected) {
-    return;
-  }
-  isScriptInjected = true;
-
-  // Initialize dataLayer and gtag function before loading the script
-  // This follows the standard Google Analytics initialization pattern
-  window.dataLayer = window.dataLayer || [];
-  
-  function gtag(...args: any[]): void {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push(args);
-  }
-  
-  window.gtag = gtag as any;
-
-  // Queue initial configuration commands in dataLayer
-  // Google's script will process these automatically when it loads
-  gtag('js', new Date());
-  gtag('config', GA_TRACKING_ID, {
-    page_path: window.location.pathname,
-  });
-
-  // Load the GA script asynchronously
-  // When it loads, it will automatically process the dataLayer
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
-  
-  script.onload = () => {
-    // Google's script processes dataLayer automatically
-    // Mark as loaded after a short delay to ensure script has executed
-    setTimeout(() => {
-      isGAScriptLoaded = true;
-      flushPendingCommands();
-    }, 100);
-  };
-  
-  script.onerror = () => {
-    console.error('Failed to load Google Analytics script');
-  };
-  
-  document.head.appendChild(script);
+  // Google Analytics is initialized in index.html, so this is a no-op
+  // Kept for backwards compatibility
 }
 
 /**
  * Track a page view
  */
 export function trackPageView(path: string, title?: string): void {
-  if (!GA_TRACKING_ID) {
+  if (!GA_TRACKING_ID || !window.gtag) {
     return;
   }
 
-  runOrQueue(() => {
-    window.gtag?.('config', GA_TRACKING_ID, {
-      page_path: path,
-      page_title: title || document.title,
-    });
+  window.gtag('config', GA_TRACKING_ID, {
+    page_path: path,
+    page_title: title || document.title,
   });
 }
 
@@ -131,32 +61,26 @@ export function trackEvent(
   },
   useBeacon: boolean = false
 ): void {
-  if (!GA_TRACKING_ID) {
+  if (!GA_TRACKING_ID || !window.gtag) {
     return;
   }
 
-  runOrQueue(() => {
-    if (!window.gtag) {
-      return;
-    }
+  if (useBeacon) {
+    window.gtag('config', GA_TRACKING_ID, {
+      transport_type: 'beacon',
+    });
+  }
 
-    if (useBeacon) {
-      window.gtag('config', GA_TRACKING_ID, {
-        transport_type: 'beacon',
+  // Send the event
+  window.gtag('event', eventName, eventParams);
+
+  if (useBeacon) {
+    setTimeout(() => {
+      window.gtag?.('config', GA_TRACKING_ID, {
+        transport_type: undefined,
       });
-    }
-
-    // Send the event
-    window.gtag('event', eventName, eventParams);
-
-    if (useBeacon) {
-      setTimeout(() => {
-        window.gtag?.('config', GA_TRACKING_ID, {
-          transport_type: undefined,
-        });
-      }, 0);
-    }
-  });
+    }, 0);
+  }
 }
 
 /**

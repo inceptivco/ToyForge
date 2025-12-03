@@ -9,7 +9,15 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react()],
+      plugins: [
+        react(),
+        {
+          name: 'html-transform',
+          transformIndexHtml(html) {
+            return html.replace(/%VITE_GA_TRACKING_ID%/g, env.VITE_GA_TRACKING_ID || '');
+          },
+        },
+      ],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

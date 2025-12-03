@@ -2,10 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './AppRoot';
 import './index.css';
-import { initializeGA } from './utils/analytics';
-
-// Initialize Google Analytics
-initializeGA();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
