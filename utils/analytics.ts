@@ -24,7 +24,9 @@ const pendingCommands: Array<() => void> = [];
 let isScriptInjected = false;
 
 function runOrQueue(command: () => void): void {
-  if (isGAScriptLoaded && window.gtag) {
+  // Check if Google's real gtag function is available (it has a different signature than our custom one)
+  const hasRealGtag = window.gtag && window.gtag.toString().includes('dataLayer');
+  if (isGAScriptLoaded && hasRealGtag) {
     command();
   } else {
     pendingCommands.push(command);
@@ -68,22 +70,32 @@ export function initializeGA(): void {
   
   window.gtag = gtag as any;
 
+  // Queue initial configuration commands in dataLayer
+  // Google's script will process these automatically when it loads
+  gtag('js', new Date());
+  gtag('config', GA_TRACKING_ID, {
+    page_path: window.location.pathname,
+  });
+
   // Load the GA script asynchronously
-  // When it loads, it will process the queued dataLayer commands
+  // When it loads, it will automatically process the dataLayer
   const script = document.createElement('script');
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
-  script.addEventListener('load', () => {
-    gtag('js', new Date());
-    gtag('config', GA_TRACKING_ID, {
-      page_path: window.location.pathname,
-    });
-    isGAScriptLoaded = true;
-    flushPendingCommands();
-  });
-  script.addEventListener('error', () => {
+  
+  script.onload = () => {
+    // Google's script processes dataLayer automatically
+    // Mark as loaded after a short delay to ensure script has executed
+    setTimeout(() => {
+      isGAScriptLoaded = true;
+      flushPendingCommands();
+    }, 100);
+  };
+  
+  script.onerror = () => {
     console.error('Failed to load Google Analytics script');
-  });
+  };
+  
   document.head.appendChild(script);
 }
 
