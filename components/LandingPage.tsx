@@ -64,7 +64,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ user, onSignInClick })
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                             </span>
-                            v1.0 Public API Now Available
+                            New: Get 3 Free Credits on Sign Up
                         </div>
                         <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
                             <span className="text-slate-900">Effortlessly integrate</span> <br />
